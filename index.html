@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Missão: Café da Tia Mari</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="sky-bg" aria-hidden="true">
+  <div class="sun">☀️</div>
+  <div class="cloud cloud1">☁️</div>
+  <div class="cloud cloud2">☁️</div>
+  <div class="cloud cloud3">☁️</div>
+</div>
+
+<button id="btn-mute" class="mute-btn" title="Som ligado/desligado">🔊</button>
+
+<!-- ===================== TELA INICIAL ===================== -->
+<section id="screen-start" class="screen active">
+  <div class="start-card">
+    <h1 class="title">🚌 Missão: Café da Tia Mari</h1>
+    <p class="subtitle">Ajude o ônibus escolar a buscar os colegas, resolva as continhas da roça e chegue a tempo na Escola 25 de Julho!</p>
+
+    <div class="start-scene" aria-hidden="true">
+      <div class="parallax-hills"></div>
+      <div class="scene-hill"></div>
+      <div class="scene-house">🏠</div>
+      <div class="scene-tree">🌳</div>
+      <div class="scene-bus">🚌</div>
+      <div class="scene-dust"></div>
+      <div class="scene-school">🏫</div>
+      <div class="scene-grass"></div>
+    </div>
+
+    <label class="name-label" for="playerName">Como você se chama?</label>
+    <input type="text" id="playerName" class="name-input" placeholder="Digite seu nome" maxlength="20">
+
+    <button id="btn-start" class="btn btn-big btn-primary">▶️ Começar jogo</button>
+    <button id="btn-howto" class="btn btn-big btn-secondary">❓ Como jogar</button>
+  </div>
+</section>
+
+<!-- ===================== COMO JOGAR ===================== -->
+<section id="screen-howto" class="screen">
+  <div class="card howto-card">
+    <h2>❓ Como jogar</h2>
+    <ul class="howto-list">
+      <li>🚌 O ônibus vai passar nas casas dos colegas.</li>
+      <li>🔢 Em cada parada, responda uma continha de matemática da roça.</li>
+      <li>✅ Acertou? O colega entra no ônibus, você ganha pontos e uma figurinha!</li>
+      <li>❌ Errou? Não tem problema, a viagem continua!</li>
+      <li>🎯 Junte 100 pontos para chegar à escola a tempo do café!</li>
+      <li>🆘 Use as ajudas se precisar: colegas, carta e professora.</li>
+      <li>🔥 Acerte seguido para fazer sequências especiais!</li>
+    </ul>
+    <button id="btn-howto-back" class="btn btn-big btn-primary">⬅️ Voltar</button>
+  </div>
+</section>
+
+<!-- ===================== TELA DO MAPA ===================== -->
+<section id="screen-map" class="screen">
+  <header class="hud">
+    <div class="hud-item">
+      <span class="hud-label">Pontos</span>
+      <span class="hud-value" id="hud-score">0</span>
+      <span class="hud-goal">/ 100</span>
+    </div>
+    <div class="hud-progress-wrap">
+      <div class="hud-progress-bar"><div id="hud-progress-fill" class="hud-progress-fill"></div></div>
+    </div>
+    <div class="hud-item">
+      <span class="hud-label">No ônibus</span>
+      <span class="hud-value" id="hud-onbus">0/11</span>
+    </div>
+    <div class="hud-item">
+      <span class="hud-label">Parada</span>
+      <span class="hud-value" id="hud-stop">0/11</span>
+    </div>
+  </header>
+
+  <div id="streak-banner" class="streak-banner"></div>
+
+  <div class="map-wrap">
+    <div class="parallax-clouds" aria-hidden="true">
+      <span>☁️</span><span>☁️</span><span>☁️</span>
+    </div>
+    <div class="parallax-hills-map" aria-hidden="true"></div>
+    <div class="road" id="road">
+      <div class="road-line"></div>
+      <!-- houses injected by JS -->
+    </div>
+  </div>
+
+  <div class="bus-panel">
+    <h3>🚌 No ônibus:</h3>
+    <div id="bus-passengers" class="bus-passengers"></div>
+  </div>
+
+  <div class="sticker-album">
+    <h3>🏅 Álbum de figurinhas</h3>
+    <div id="sticker-list" class="sticker-list"></div>
+  </div>
+</section>
+
+<!-- ===================== TELA: PAUSA / MINI-EVENTO ===================== -->
+<section id="screen-event" class="screen">
+  <div class="card event-card">
+    <div class="event-emoji" id="event-emoji">🐄</div>
+    <p class="event-text" id="event-text">Uma vaquinha atravessa a estrada devagar...</p>
+    <button id="btn-event-continue" class="btn btn-big btn-primary">▶️ Continuar viagem</button>
+  </div>
+</section>
+
+<!-- ===================== TELA DE DESAFIO ===================== -->
+<section id="screen-question" class="screen">
+  <div class="question-card">
+    <div class="stop-banner" id="stop-banner">Parada: Casa de ...</div>
+    <div class="category-tag" id="category-tag">Categoria</div>
+    <div class="question-visual" id="question-visual"></div>
+    <p class="question-text" id="question-text">Pergunta...</p>
+
+    <div class="answers-grid" id="answers-grid">
+      <!-- buttons injected by JS -->
+    </div>
+
+    <div class="help-bar">
+      <button id="btn-help-friends" class="btn btn-help">👫 Ajuda dos colegas <span id="help-friends-count" class="help-count">2</span></button>
+      <button id="btn-help-card" class="btn btn-help">🃏 Carta de ajuda <span id="help-card-count" class="help-count">3</span></button>
+      <button id="btn-help-teacher" class="btn btn-help">☎️ Ligar para a professora <span id="help-teacher-count" class="help-count">1</span></button>
+    </div>
+
+    <div id="feedback-banner" class="feedback-banner"></div>
+  </div>
+</section>
+
+<!-- ===================== MODAL: AJUDA DOS COLEGAS ===================== -->
+<div id="modal-friends" class="modal-overlay">
+  <div class="modal-box bus-interior">
+    <h3>👫 Ajuda dos colegas</h3>
+    <div id="friends-votes" class="friends-votes"></div>
+    <button id="btn-friends-close" class="btn btn-big btn-primary">✅ Voltar para responder</button>
+  </div>
+</div>
+
+<!-- ===================== MODAL: CARTA DE AJUDA ===================== -->
+<div id="modal-card" class="modal-overlay">
+  <div class="modal-box card-modal">
+    <h3>🃏 Carta de ajuda</h3>
+    <div class="help-card" id="help-card-visual">
+      <div class="help-card-inner">
+        <div class="help-card-icon" id="card-icon">🎴</div>
+        <div class="help-card-title" id="card-title">Virando a carta...</div>
+        <div class="help-card-text" id="card-text"></div>
+      </div>
+    </div>
+    <button id="btn-card-close" class="btn btn-big btn-primary">✅ Continuar</button>
+  </div>
+</div>
+
+<!-- ===================== MODAL: LIGAR PARA PROFESSORA ===================== -->
+<div id="modal-teacher" class="modal-overlay">
+  <div class="modal-box teacher-modal">
+    <h3 id="teacher-calling">☎️ Ligando para a Professora Dirlene...</h3>
+    <div class="phone-call">
+      <div class="teacher-avatar">👩‍🏫</div>
+      <div class="phone-icon">📞</div>
+    </div>
+    <div class="teacher-bubble" id="teacher-tip"></div>
+    <button id="btn-teacher-close" class="btn btn-big btn-primary">✅ Obrigado, professora!</button>
+  </div>
+</div>
+
+<!-- ===================== TELA DESAFIOS EXTRAS ===================== -->
+<section id="screen-extra-intro" class="screen">
+  <div class="card">
+    <h2>🚌 Quase lá!</h2>
+    <p class="extra-text">O ônibus chegou pertinho da escola, mas ainda faltam alguns pontos para liberar o Café da Tia Mari!</p>
+    <p class="extra-text">Vamos responder mais alguns desafios extras! 💪</p>
+    <button id="btn-extra-continue" class="btn btn-big btn-primary">▶️ Continuar</button>
+  </div>
+</section>
+
+<!-- ===================== TELA FINAL ===================== -->
+<section id="screen-final" class="screen">
+  <div class="card final-card">
+    <div class="final-scene" aria-hidden="true">🏫🎉</div>
+    <h2 id="final-title">Parabéns! Você chegou a tempo para o Café da Tia Mari!</h2>
+
+    <div class="reward-steps" id="reward-steps">
+      <div class="reward-step" id="reward-1">☕ Café da Tia Mari liberado</div>
+      <div class="reward-step" id="reward-2">🏆 Prêmio da Professora Dirlene conquistado</div>
+      <div class="reward-step" id="reward-3">🌟 Prêmio Master da Professora Ana conquistado</div>
+    </div>
+
+    <div class="certificate" id="certificate">
+      <div class="certificate-title">🎓 Certificado de Guardião do Ônibus Escolar 🎓</div>
+      <div class="certificate-name" id="certificate-name">Nome</div>
+      <div class="certificate-text">Você ajudou os colegas, respondeu os desafios e chegou à Escola 25 de Julho!</div>
+    </div>
+
+    <button id="btn-play-again" class="btn btn-big btn-primary">🔁 Jogar novamente</button>
+  </div>
+</section>
+
+<!-- Confetti / stars layer -->
+<div id="fx-layer" class="fx-layer" aria-hidden="true"></div>
+
+<script src="script.js"></script>
+</body>
+</html>
