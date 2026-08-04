@@ -438,6 +438,7 @@ const DOM = {
   hcFriend:        $('hc-friend'),
   hcHint:          $('hc-hint'),
   hcTeacher:       $('hc-teacher'),
+  helpBar:         $('help-bar'),
   modalBoarded:    $('modal-boarded'),
   mbAvatar:        $('mb-avatar'),
   mbTitle:         $('mb-title'),
@@ -446,7 +447,14 @@ const DOM = {
   modalFriendHelp: $('modal-friend-help'),
   friendHintsRow:  $('friend-hints-row'),
   btnCloseFH:      $('btn-close-fh'),
-  questionCard:    $('question-card'),
+  // painel de resultado
+  answerResult:    $('answer-result'),
+  arIcon:          $('ar-icon'),
+  arTitle:         $('ar-title'),
+  arPoints:        $('ar-points'),
+  arCorrect:       $('ar-correct'),
+  arExplanation:   $('ar-explanation'),
+  btnNextStop:     $('btn-next-stop'),
   scoreDelta:      $('score-delta'),
   // victory
   certName:        $('cert-name'),
@@ -650,15 +658,22 @@ function nextQuestion() {
   DOM.qText.textContent       = state.currentQ.q;
   DOM.feedbackMsg.textContent = '';
   DOM.feedbackMsg.className   = '';
-  DOM.questionCard.className  = 'card-neutral';
 
+  // ocultar painel de resultado
+  DOM.answerResult.className  = 'ar-hidden';
+
+  // restaurar alternativas
   DOM.opts.forEach((btn, i) => {
     btn.textContent = state.currentQ.opts[i];
     btn.className   = 'opt';
     btn.disabled    = false;
+    btn.style.opacity = '';
   });
 
-  // reabilitar ajudas se não foram usadas
+  // mostrar barra de ajudas
+  DOM.helpBar.style.visibility = '';
+  DOM.helpBar.style.pointerEvents = '';
+
   updateHelpCounts();
   updateFriendPopup();
 }
@@ -672,48 +687,82 @@ function selectAnswer(idx) {
   const q       = state.currentQ;
   const correct = (idx === q.a);
 
-  DOM.opts.forEach(b => b.disabled = true);
-
-  if (correct) {
-    DOM.opts[idx].classList.add('correct');
-    state.correct++;
-    playCorrect();
-
-    DOM.feedbackMsg.innerHTML = `✅ <strong>Certo!</strong> +10 pontos! 🎉`;
-    DOM.feedbackMsg.className = 'ok';
-    DOM.questionCard.classList.add('card-correct');
-    showScoreDelta('+10', true);
-    updateScoreUI(state.score + 10, '+10');
-
-  } else {
+  // desabilitar todas as alternativas imediatamente
+  DOM.opts.forEach(b => {
+    b.disabled = true;
+    b.style.opacity = '.75';
+  });
+  // destacar correta e incorreta (opacidade total nelas)
+  DOM.opts[q.a].classList.add('correct');
+  DOM.opts[q.a].style.opacity = '1';
+  if (!correct) {
     DOM.opts[idx].classList.add('wrong');
-    DOM.opts[q.a].classList.add('correct');
-    state.wrong++;
-    playWrong();
-
-    const penalty    = Math.min(WRONG_PENALTY, state.score);
-    const newScore   = state.score - penalty;
-    const penaltyStr = penalty > 0 ? `-${penalty} pontos` : 'sem pontos';
-    DOM.feedbackMsg.innerHTML = `❌ <strong>Ops!</strong> ${penaltyStr}. A resposta certa era: <em>${q.opts[q.a]}</em>`;
-    DOM.feedbackMsg.className = 'bad';
-    DOM.questionCard.classList.add('card-wrong');
-    if (penalty > 0) showScoreDelta(`-${penalty}`, false);
-    updateScoreUI(newScore, penalty > 0 ? `-${penalty}` : null);
+    DOM.opts[idx].style.opacity = '1';
   }
 
-  setTimeout(advanceAfterAnswer, correct ? 1400 : 2200);
+  // ocultar barra de ajudas enquanto resultado está visível
+  DOM.helpBar.style.visibility   = 'hidden';
+  DOM.helpBar.style.pointerEvents = 'none';
+  // ocultar dica de help
+  DOM.feedbackMsg.textContent = '';
+  DOM.feedbackMsg.className   = '';
+
+  if (correct) {
+    state.correct++;
+    playCorrect();
+    showScoreDelta('+10', true);
+    updateScoreUI(state.score + 10, '+10');
+    showAnswerResult(true, q, 0);
+  } else {
+    state.wrong++;
+    playWrong();
+    const penalty = Math.min(WRONG_PENALTY, state.score);
+    if (penalty > 0) showScoreDelta(`-${penalty}`, false);
+    updateScoreUI(Math.max(0, state.score - penalty), null);
+    showAnswerResult(false, q, penalty);
+  }
 }
 
 window.selectAnswer = selectAnswer;
 
-function advanceAfterAnswer() {
-  DOM.questionCard.classList.remove('card-correct', 'card-wrong', 'card-neutral');
-  if (state.score >= 100) {
-    showVictory();
-  } else {
-    nextQuestion();
-  }
+/* Preencher e exibir o painel de resultado */
+function showAnswerResult(correct, q, penalty) {
+  const ar = DOM.answerResult;
+
+  ar.className = correct ? 'result-correct' : 'result-wrong';
+
+  DOM.arIcon.textContent  = correct ? '✅' : '❌';
+
+  DOM.arTitle.textContent = correct
+    ? 'Muito bem! Você acertou! 🎉'
+    : 'Ops! Vamos aprender juntos.';
+
+  DOM.arPoints.textContent = correct
+    ? '+10 pontos'
+    : (penalty > 0 ? `-${penalty} pontos` : '');
+
+  DOM.arCorrect.textContent = correct
+    ? ''
+    : `✏️ A resposta certa era: "${q.opts[q.a]}"`;
+
+  DOM.arExplanation.textContent = q.hint ? `💡 ${q.hint}` : '';
+
+  // Rolar o botão para ficar visível no celular
+  setTimeout(() => {
+    DOM.btnNextStop.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, 80);
 }
+
+function advanceAfterAnswer() {
+  if (state.score >= 100) showVictory();
+  else nextQuestion();
+}
+
+// Botão "Próxima Parada" – disparado pelo usuário (não por timer)
+DOM.btnNextStop.addEventListener('click', () => {
+  playClick();
+  advanceAfterAnswer();
+});
 
 /* ── Delta flutuante de pontuação ──────────────────────── */
 function showScoreDelta(text, isGood) {
@@ -830,14 +879,16 @@ function useHelp(type) {
     state.helpHint--;
     DOM.hcHint.textContent = state.helpHint;
     if (state.helpHint === 0) DOM.hBtnHint.disabled = true;
-    setFeedback(`📝 Dica: ${q.hint}`, '');
+    DOM.feedbackMsg.textContent = `📝 Dica: ${q.hint}`;
+    DOM.feedbackMsg.className   = '';
 
   } else if (type === 'teacher') {
     if (state.helpTeacher <= 0) return;
     state.helpTeacher--;
     DOM.hcTeacher.textContent = state.helpTeacher;
     if (state.helpTeacher === 0) DOM.hBtnTeacher.disabled = true;
-    setFeedback(`📞 Professora diz: "${q.teacherHint}"`, 'teacher-hint');
+    DOM.feedbackMsg.textContent = `📞 Professora: "${q.teacherHint}"`;
+    DOM.feedbackMsg.className   = 'teacher-hint';
   }
 }
 
@@ -894,12 +945,6 @@ DOM.btnCloseFH.addEventListener('click', () => {
   playClick();
   DOM.modalFriendHelp.classList.add('hidden');
 });
-
-/* ── Helpers de feedback ─────────────────────────────────── */
-function setFeedback(msg, cls) {
-  DOM.feedbackMsg.innerHTML  = msg;
-  DOM.feedbackMsg.className  = cls || '';
-}
 
 function updateHelpCounts() {
   DOM.hcFriend.textContent  = state.helpFriend;
