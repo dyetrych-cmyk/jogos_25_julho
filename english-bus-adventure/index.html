@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>English Bus Adventure 🚌 – Escola 25 de Julho</title>
+  <!-- favicon emoji inline – sem arquivo externo -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚌</text></svg>">
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -151,6 +153,10 @@
     <div id="q-emoji" aria-hidden="true"></div>
     <div id="q-text" role="heading" aria-level="2">Carregando...</div>
 
+    <!-- Dica da ajuda (hint/professora) – some ao responder -->
+    <div id="feedback-msg" aria-live="polite"></div>
+
+    <!-- Grade de alternativas -->
     <div id="options-grid">
       <button class="opt" id="opt0" data-idx="0"></button>
       <button class="opt" id="opt1" data-idx="1"></button>
@@ -158,7 +164,21 @@
       <button class="opt" id="opt3" data-idx="3"></button>
     </div>
 
-    <div id="feedback-msg" aria-live="assertive"></div>
+    <!-- ── Painel de resultado (aparece depois de responder) ── -->
+    <div id="answer-result" class="ar-hidden" aria-live="assertive">
+      <div class="ar-icon-row">
+        <span id="ar-icon" class="ar-icon"></span>
+        <div class="ar-text-block">
+          <div id="ar-title" class="ar-title"></div>
+          <div id="ar-points" class="ar-points"></div>
+        </div>
+      </div>
+      <div id="ar-correct" class="ar-correct"></div>
+      <div id="ar-explanation" class="ar-explanation"></div>
+      <button id="btn-next-stop" class="btn-next-stop">
+        🚌 Próxima Parada →
+      </button>
+    </div>
   </div><!-- /question-card -->
 
   <!-- Delta de pontuação flutuante -->
