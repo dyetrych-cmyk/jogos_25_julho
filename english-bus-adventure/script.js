@@ -652,6 +652,8 @@ function nextQuestion() {
   state.currentQ = state.pool.pop();
   state.answered = false;
 
+  console.log('Pergunta renderizada:', state.currentQ.q);
+
   DOM.qCatBadge.textContent   = state.currentQ.cat;
   DOM.qNum.textContent        = `Pergunta ${state.total + 1}`;
   DOM.qEmoji.textContent      = state.currentQ.emoji;
@@ -659,19 +661,29 @@ function nextQuestion() {
   DOM.feedbackMsg.textContent = '';
   DOM.feedbackMsg.className   = '';
 
-  // ocultar painel de resultado
-  DOM.answerResult.className  = 'ar-hidden';
+  // ocultar painel de resultado – via style direto (não depende de CSS)
+  DOM.answerResult.style.display = 'none';
+  DOM.answerResult.className     = '';
 
-  // restaurar alternativas
+  // restaurar alternativas E conectar o handler de clique
   DOM.opts.forEach((btn, i) => {
-    btn.textContent = state.currentQ.opts[i];
-    btn.className   = 'opt';
-    btn.disabled    = false;
+    btn.textContent   = state.currentQ.opts[i];
+    btn.className     = 'opt';
+    btn.disabled      = false;
     btn.style.opacity = '';
+    // ── FIX PRINCIPAL: atribuir onclick em cada renderização ──
+    btn.onclick = (function(index) {
+      return function() {
+        console.log('Resposta clicada', index);
+        selectAnswer(index);
+      };
+    })(i);
   });
 
+  console.log('Botões criados', DOM.opts.length);
+
   // mostrar barra de ajudas
-  DOM.helpBar.style.visibility = '';
+  DOM.helpBar.style.visibility    = '';
   DOM.helpBar.style.pointerEvents = '';
 
   updateHelpCounts();
@@ -679,6 +691,7 @@ function nextQuestion() {
 }
 
 function selectAnswer(idx) {
+  console.log('selectAnswer chamada', idx);
   if (state.answered) return;
   ensureAudio();
   state.answered = true;
@@ -725,11 +738,15 @@ function selectAnswer(idx) {
 
 window.selectAnswer = selectAnswer;
 
-/* Preencher e exibir o painel de resultado */
+/* Preencher e exibir o painel de resultado
+   – usa style.display diretamente, sem depender de CSS */
 function showAnswerResult(correct, q, penalty) {
   const ar = DOM.answerResult;
 
-  ar.className = correct ? 'result-correct' : 'result-wrong';
+  // --- garantir visibilidade sem depender de classe CSS ---
+  ar.removeAttribute('hidden');
+  ar.style.display = 'block';
+  ar.className     = correct ? 'result-correct' : 'result-wrong';
 
   DOM.arIcon.textContent  = correct ? '✅' : '❌';
 
@@ -747,7 +764,9 @@ function showAnswerResult(correct, q, penalty) {
 
   DOM.arExplanation.textContent = q.hint ? `💡 ${q.hint}` : '';
 
-  // Rolar o botão para ficar visível no celular
+  console.log('Feedback renderizado –', correct ? 'CERTO' : 'ERRADO');
+
+  // Rolar o botão para a tela no celular
   setTimeout(() => {
     DOM.btnNextStop.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, 80);
