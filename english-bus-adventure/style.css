@@ -1148,6 +1148,146 @@ body {
 }
 
 /* ────────────────────────────────────────────────────────
+   PAINEL DE RESULTADO DA RESPOSTA
+   ──────────────────────────────────────────────────────── */
+
+/* question-card precisa ser scrollable quando conteúdo cresce */
+#question-card {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Estado oculto */
+#answer-result.ar-hidden {
+  display: none;
+}
+
+/* Painel visível */
+#answer-result {
+  border-radius: 16px;
+  padding: 16px 14px 14px;
+  margin-top: 10px;
+  animation: slideInResult .3s cubic-bezier(.4,0,.2,1);
+}
+#answer-result.result-correct {
+  background: linear-gradient(135deg, #E8F5E9 0%, #C8F0D0 100%);
+  border: 2.5px solid #43A047;
+}
+#answer-result.result-wrong {
+  background: linear-gradient(135deg, #FFF3F3 0%, #FFD7D7 100%);
+  border: 2.5px solid #EF5350;
+}
+
+@keyframes slideInResult {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Linha ícone + textos */
+.ar-icon-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.ar-icon {
+  font-size: 2.6rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.ar-text-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ar-title {
+  font-size: 1.05rem;
+  font-weight: 900;
+  color: #1A3C72;
+  line-height: 1.2;
+}
+.ar-points {
+  font-size: 1.35rem;
+  font-weight: 900;
+}
+.result-correct .ar-points { color: #2E7D32; }
+.result-wrong   .ar-points { color: #C62828; }
+
+/* Resposta certa (só aparece no erro) */
+.ar-correct {
+  font-size: .92rem;
+  font-weight: 800;
+  color: #1A3C72;
+  background: rgba(255,255,255,.65);
+  border-radius: 10px;
+  padding: 6px 10px;
+  margin-bottom: 6px;
+  line-height: 1.3;
+}
+.ar-correct:empty { display: none; }
+
+/* Explicação / dica da palavra */
+.ar-explanation {
+  font-size: .85rem;
+  color: #5D4037;
+  font-style: italic;
+  background: rgba(255,255,255,.55);
+  border-radius: 10px;
+  padding: 6px 10px;
+  margin-bottom: 12px;
+  line-height: 1.4;
+  font-family: sans-serif;
+}
+.ar-explanation:empty { display: none; }
+
+/* Botão Próxima Parada */
+.btn-next-stop {
+  display: block;
+  width: 100%;
+  padding: 15px 10px;
+  background: linear-gradient(135deg, #FFD700 0%, #FF8C00 100%);
+  border: none;
+  border-radius: 50px;
+  font-family: inherit;
+  font-size: 1.15rem;
+  font-weight: 900;
+  color: #1A3C72;
+  cursor: pointer;
+  box-shadow: 0 5px 18px rgba(255,160,0,.5);
+  transition: transform .15s, box-shadow .15s;
+  min-height: 56px;
+  touch-action: manipulation;
+  letter-spacing: .3px;
+  text-align: center;
+}
+.btn-next-stop:hover  {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(255,160,0,.6);
+}
+.btn-next-stop:active { transform: scale(.97); }
+
+/* Feedback de dica (help buttons) – fica entre q-text e options */
+#feedback-msg {
+  font-size: .9rem;
+  font-weight: 700;
+  color: #555;
+  padding: 5px 8px;
+  border-radius: 10px;
+  min-height: 0;
+  line-height: 1.4;
+  transition: all .2s;
+  margin-bottom: 4px;
+}
+#feedback-msg:empty { display: none; }
+#feedback-msg.teacher-hint {
+  color: #5D4037;
+  background: rgba(255,193,7,.15);
+  border: 1.5px solid rgba(255,193,7,.45);
+  font-style: italic;
+}
+/* Remove estilos .ok e .bad – agora são do painel de resultado */
+
+/* ────────────────────────────────────────────────────────
    MODAL – AJUDA DOS AMIGOS (balões de fala)
    ──────────────────────────────────────────────────────── */
 .friend-hint-box {
@@ -1241,52 +1381,7 @@ body {
   font-weight: 600;
 }
 
-/* ────────────────────────────────────────────────────────
-   FEEDBACK MELHORADO (correct / wrong / hint)
-   ──────────────────────────────────────────────────────── */
-#feedback-msg {
-  font-size: 1rem;
-  font-weight: 700;
-  text-align: center;
-  min-height: 26px;
-  color: #555;
-  padding: 4px 8px;
-  border-radius: 10px;
-  line-height: 1.4;
-  transition: background .25s;
-}
-#feedback-msg.ok {
-  color: #00802A;
-  background: rgba(0,200,83,.12);
-  border: 1.5px solid rgba(0,200,83,.3);
-}
-#feedback-msg.bad {
-  color: #C62828;
-  background: rgba(231,76,60,.1);
-  border: 1.5px solid rgba(231,76,60,.25);
-}
-#feedback-msg.teacher-hint {
-  color: #5D4037;
-  background: rgba(255,193,7,.12);
-  border: 1.5px solid rgba(255,193,7,.4);
-  font-style: italic;
-}
-
-/* Flash no card ao acertar / errar */
-#question-card.card-correct {
-  animation: cardFlashGreen .6s ease forwards;
-}
-#question-card.card-wrong {
-  animation: cardFlashRed .55s ease forwards;
-}
-@keyframes cardFlashGreen {
-  0%   { background: #C8F7D6; }
-  100% { background: var(--card-bg); }
-}
-@keyframes cardFlashRed {
-  0%   { background: #FFD7D7; }
-  100% { background: var(--card-bg); }
-}
+/* (feedback-msg e card flash movidos para cima, junto do painel de resultado) */
 
 /* Delta de pontuação flutuante */
 #score-delta {
@@ -1343,25 +1438,34 @@ body {
   #score-val      { font-size: 1.1rem; }
 
   /* Cena */
-  #scene          { height: 130px; }
+  #scene          { height: 125px; }
   .gb-sign        { font-size: .36rem; }
   .gb-body        { width: 68px; height: 28px; }
   .gb-win         { width: 12px; height: 12px; }
 
-  /* Card perguntas */
-  #question-card  { padding: 10px 12px 8px; gap: 8px; }
-  #q-text         { font-size: 1.05rem; min-height: 36px; }
+  /* Card de perguntas */
+  #question-card  { padding: 10px 12px 8px; gap: 7px; }
+  #q-text         { font-size: 1.05rem; min-height: 34px; }
   #q-emoji        { font-size: 1.8rem; }
   #options-grid   { gap: 8px; }
-  .opt            { font-size: .95rem; padding: 12px 6px; min-height: 54px; }
+  .opt            { font-size: .95rem; padding: 11px 6px; min-height: 52px; }
+
+  /* Painel de resultado */
+  #answer-result  { padding: 12px 11px 11px; margin-top: 8px; }
+  .ar-icon        { font-size: 2.1rem; }
+  .ar-title       { font-size: .98rem; }
+  .ar-points      { font-size: 1.2rem; }
+  .ar-correct,
+  .ar-explanation { font-size: .82rem; padding: 5px 9px; margin-bottom: 5px; }
+  .btn-next-stop  { font-size: 1.05rem; padding: 13px 10px; min-height: 52px; }
 
   /* Help bar */
   #help-bar       { padding: 6px 8px; gap: 6px; }
   .hb-icon        { font-size: 1.1rem; }
   .hb-label       { font-size: .6rem; }
 
-  /* Feedback */
-  #feedback-msg   { font-size: .88rem; }
+  /* Feedback dica */
+  #feedback-msg   { font-size: .85rem; }
 
   /* Certificado */
   .cert-title     { font-size: 1.25rem; }
@@ -1370,19 +1474,25 @@ body {
 }
 
 @media (max-width: 380px) {
-  .opt { font-size: .85rem; padding: 10px 4px; }
-  #options-grid { grid-template-columns: 1fr 1fr; }
+  .opt            { font-size: .85rem; padding: 10px 4px; }
+  #options-grid   { grid-template-columns: 1fr 1fr; }
+  .ar-title       { font-size: .9rem; }
+  .btn-next-stop  { font-size: .95rem; }
 }
 
 /* Telas muito baixas (ex: iPhone SE landscape) */
 @media (max-height: 600px) {
-  #scene      { height: 105px; }
-  #friends-bar { padding: 4px 8px; }
-  .friend-avatar { width: 28px; height: 28px; font-size: .8rem; }
-  #question-card { padding: 8px 12px 6px; gap: 6px; }
-  #q-emoji    { display: none; }
-  #q-text     { font-size: .95rem; }
-  .opt        { padding: 9px 6px; min-height: 46px; font-size: .88rem; }
+  #scene          { height: 100px; }
+  #friends-bar    { padding: 4px 8px; }
+  .friend-avatar  { width: 28px; height: 28px; font-size: .8rem; }
+  #question-card  { padding: 7px 11px 6px; gap: 5px; }
+  #q-emoji        { display: none; }
+  #q-text         { font-size: .92rem; }
+  .opt            { padding: 9px 6px; min-height: 46px; font-size: .86rem; }
+  .ar-icon        { font-size: 1.7rem; }
+  .ar-title       { font-size: .9rem; }
+  .ar-points      { font-size: 1.05rem; }
+  .btn-next-stop  { padding: 11px; min-height: 48px; font-size: 1rem; }
 }
 
 /* ────────────────────────────────────────────────────────
