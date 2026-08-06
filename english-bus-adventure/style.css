@@ -2125,3 +2125,94 @@ body {
   .cc-name  { font-size: 1.25rem; }
   .cc-title { font-size: .95rem; }
 }
+
+/* ══════════════════════════════════════════════════════
+   SUPABASE – indicadores visuais
+   ══════════════════════════════════════════════════════ */
+
+/* ── Toast de status (envio online) ──────────────────── */
+.online-toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  padding: 10px 20px;
+  border-radius: 24px;
+  font-family: inherit;
+  font-size: .88rem;
+  font-weight: 600;
+  text-align: center;
+  box-shadow: 0 4px 16px rgba(0,0,0,.2);
+  pointer-events: none;
+  animation: toastFadeIn .3s ease;
+  white-space: nowrap;
+  max-width: 90vw;
+}
+.toast-ok   { background: #2E7D32; color: #fff; }
+.toast-warn { background: #F57F17; color: #fff; }
+@keyframes toastFadeIn {
+  from { opacity:0; transform: translateX(-50%) translateY(10px); }
+  to   { opacity:1; transform: translateX(-50%) translateY(0); }
+}
+
+/* ── Indicador de fonte no ranking (online/local) ──── */
+.rank-source {
+  font-size: .78rem;
+  margin-top: 5px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  display: inline-block;
+}
+.rank-source-online {
+  background: #E8F5E9;
+  color: #2E7D32;
+  border: 1px solid #A5D6A7;
+}
+.rank-source-local {
+  background: #FFF8E1;
+  color: #F57F17;
+  border: 1px solid #FFE082;
+}
+.rank-source-local small { display: block; font-size: .72rem; opacity: .85; }
+
+/* ── Badge de fonte no pódio ──────────────────────── */
+.podium-src-online {
+  background: #2E7D32;
+  color: #fff;
+  font-size: .65rem;
+  padding: 2px 7px;
+  border-radius: 10px;
+  vertical-align: middle;
+  margin-left: 4px;
+}
+.podium-src-local {
+  background: #F57F17;
+  color: #fff;
+  font-size: .65rem;
+  padding: 2px 7px;
+  border-radius: 10px;
+  vertical-align: middle;
+  margin-left: 4px;
+}
+
+/* ── Loading state no ranking ─────────────────────── */
+.rank-loading {
+  text-align: center;
+  padding: 20px;
+  color: #999;
+  font-size: .9rem;
+  animation: rankPulse 1.2s ease-in-out infinite;
+}
+@keyframes rankPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: .4; }
+}
+
+/* ── Origem no certificado ────────────────────────── */
+.cri-source {
+  font-size: .72rem;
+  color: #aaa;
+  margin-top: 4px;
+  font-style: italic;
+}
