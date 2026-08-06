@@ -53,13 +53,21 @@
 
     <p class="welcome-sub">Aprenda inglês com seus colegas! 🌟</p>
 
-    <div class="name-wrap">
-      <label for="player-name">Qual é o seu nome?</label>
-      <input id="player-name" type="text" maxlength="22"
-             placeholder="Digite seu nome aqui..." autocomplete="off" />
+    <!-- Seletor de aluno -->
+    <div class="student-selector">
+      <p class="selector-label">👋 Quem é você? Escolha seu nome:</p>
+      <div class="student-grid" id="student-grid"><!-- gerado pelo JS --></div>
     </div>
+    <!-- valor do aluno selecionado (preenchido via JS) -->
+    <input type="hidden" id="player-name" value="" />
 
-    <button id="btn-play" class="btn-play">▶ JOGAR!</button>
+    <!-- Pódio local – top 3 do ranking -->
+    <div id="welcome-podium" class="welcome-podium-wrap"></div>
+
+    <div class="welcome-actions">
+      <button id="btn-play" class="btn-play" disabled>▶ JOGAR!</button>
+      <button id="btn-ranking" class="btn-ranking">📅 Ver Ranking da Semana</button>
+    </div>
 
     <p class="welcome-goal">🎯 Meta: chegar a <strong>100 pontos</strong> e buscar todos os colegas!</p>
   </div>
@@ -151,17 +159,20 @@
       <span id="q-num">Pergunta 1</span>
     </div>
     <div id="q-emoji" aria-hidden="true"></div>
-    <div id="q-text" role="heading" aria-level="2">Carregando...</div>
+    <div id="q-text-row">
+      <div id="q-text" role="heading" aria-level="2">Carregando...</div>
+      <button id="btn-speak-q" class="speak-btn" aria-label="Ouvir pergunta em inglês" title="Ouvir pergunta em inglês">🔊</button>
+    </div>
 
     <!-- Dica da ajuda (hint/professora) – some ao responder -->
     <div id="feedback-msg" aria-live="polite"></div>
 
     <!-- Grade de alternativas -->
     <div id="options-grid">
-      <button class="opt" id="opt0" data-idx="0"></button>
-      <button class="opt" id="opt1" data-idx="1"></button>
-      <button class="opt" id="opt2" data-idx="2"></button>
-      <button class="opt" id="opt3" data-idx="3"></button>
+      <div class="answer-row" id="opt0" data-idx="0"></div>
+      <div class="answer-row" id="opt1" data-idx="1"></div>
+      <div class="answer-row" id="opt2" data-idx="2"></div>
+      <div class="answer-row" id="opt3" data-idx="3"></div>
     </div>
 
     <!-- ── Painel de resultado (aparece depois de responder) ── -->
@@ -173,8 +184,13 @@
           <div id="ar-points" class="ar-points"></div>
         </div>
       </div>
+      <div id="ar-friend" class="ar-friend"></div>
+      <div id="ar-friend-phrase" class="ar-friend-phrase"></div>
       <div id="ar-correct" class="ar-correct"></div>
       <div id="ar-explanation" class="ar-explanation"></div>
+      <button id="btn-repeat-speech" class="speak-btn ar-repeat-btn" aria-label="Ouvir novamente">
+        🔊 Ouvir novamente
+      </button>
       <button id="btn-next-stop" class="btn-next-stop">
         🚌 Próxima Parada →
       </button>
@@ -217,6 +233,9 @@
     <div id="friend-hints-row">
       <!-- preenchido pelo JS -->
     </div>
+    <button id="btn-speak-all-hints" class="speak-btn speak-all-btn" aria-label="Ouvir todos os palpites">
+      🔊 Ouvir todos
+    </button>
     <button id="btn-close-fh" class="btn-continue">Entendi! Vou pensar... 💭</button>
   </div>
 </div>
@@ -230,6 +249,42 @@
     <h2 id="mb-title"></h2>
     <p id="mb-msg"></p>
     <button id="btn-continue" class="btn-continue">Continuar →</button>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════
+     MODAL – RANKING SEMANAL
+     (localStorage – só este navegador;
+      para ranking real entre alunos em casas
+      diferentes: conectar ao Supabase/Firebase)
+     ══════════════════════════════════════════════ -->
+<div id="modal-ranking" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="rank-modal-title">
+  <div class="modal-box ranking-modal-box">
+    <div class="rank-header">
+      <h3 id="rank-modal-title">📅 Ranking da Semana</h3>
+      <p class="rank-subtitle">Escola 25 de Julho · dados salvos neste navegador</p>
+    </div>
+    <div id="ranking-content"><!-- preenchido pelo JS --></div>
+    <div class="rank-footer">
+      <button id="btn-clear-ranking" class="btn-clear-rank">🗑️ Limpar ranking local</button>
+      <button id="btn-close-ranking" class="btn-continue">✕ Fechar</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════
+     MODAL – CERTIFICADO DO CAMPEÃO DA SEMANA
+     ══════════════════════════════════════════════ -->
+<div id="modal-champ-cert" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="champ-cert-title">
+  <div class="modal-box champ-cert-modal-box">
+    <!-- conteúdo gerado pelo JS em openChampionCertificate() -->
+    <div id="champ-cert-content"></div>
+    <div class="champ-cert-actions">
+      <button id="btn-print-champ-cert" class="btn-print">🖨️ Imprimir certificado</button>
+      <button id="btn-close-champ-cert" class="btn-continue">✕ Fechar</button>
+    </div>
   </div>
 </div>
 
@@ -293,6 +348,9 @@
 
         <div class="cert-rule">✦ ✦ ✦ ✦ ✦</div>
 
+        <!-- Dados do ranking no certificado (preenchido pelo JS) -->
+        <div id="cert-rank-info" class="cert-rank-info"></div>
+
         <div class="cert-footer">
           <div class="cert-sig">
             <div class="cert-sig-line"></div>
@@ -307,6 +365,7 @@
 
   <div class="victory-actions">
     <button class="btn-print" onclick="window.print()">🖨️ Imprimir Certificado</button>
+    <button id="btn-ranking-v" class="btn-ranking victory-rank-btn">📅 Ver Ranking da Semana</button>
     <button class="btn-replay" id="btn-replay">🔄 Jogar de Novo</button>
   </div>
 
