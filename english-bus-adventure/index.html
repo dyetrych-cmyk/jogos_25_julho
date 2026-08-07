@@ -51,17 +51,19 @@
       <div class="db-exhaust"></div>
     </div>
 
-    <p class="welcome-sub">Aprenda inglês com seus colegas! 🌟</p>
+    <p class="welcome-sub">Aprenda inglês, busque seus colegas e suba no ranking da semana! 🌟</p>
 
     <!-- Seletor de aluno -->
     <div class="student-selector">
       <p class="selector-label">👋 Quem é você? Escolha seu nome:</p>
       <div class="student-grid" id="student-grid"><!-- gerado pelo JS --></div>
     </div>
+    <!-- prévia de nível do aluno selecionado -->
+    <div id="student-level-preview" class="student-level-preview" style="display:none"></div>
     <!-- valor do aluno selecionado (preenchido via JS) -->
     <input type="hidden" id="player-name" value="" />
 
-    <!-- Pódio local – top 3 do ranking -->
+    <!-- Pódio da semana (top 3) -->
     <div id="welcome-podium" class="welcome-podium-wrap"></div>
 
     <div class="welcome-actions">
@@ -69,7 +71,7 @@
       <button id="btn-ranking" class="btn-ranking">📅 Ver Ranking da Semana</button>
     </div>
 
-    <p class="welcome-goal">🎯 Meta: chegar a <strong>100 pontos</strong> e buscar todos os colegas!</p>
+    <p class="welcome-goal">🎯 Meta: <strong>100 pontos</strong> · buscar todos os colegas · subir de nível!</p>
   </div>
 
   <div class="welcome-ground"></div>
