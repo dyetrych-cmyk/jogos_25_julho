@@ -3687,3 +3687,17 @@ renderWelcomePodium();
       if (active.length > 0) {
         // Atualizar FRIENDS e studentCodes a partir do Supabase
         FRIENDS.length = 0;
+        active.forEach((r, i) => {
+          FRIENDS.push({ name: r.name, initial: r.name.charAt(0), color: COLORS[i % COLORS.length] });
+          studentCodes[r.name] = r.access_code;
+        });
+        // Remover códigos de alunos desativados
+        rows.filter(r => r.active === false).forEach(r => { delete studentCodes[r.name]; });
+        rebuildStudentGrid();
+        console.log(`Alunos carregados do Supabase: ${active.length} ativos.`);
+      }
+    }
+  } catch (e) {
+    console.warn('Usando lista local de alunos (Supabase indisponível).', e);
+  }
+})();
