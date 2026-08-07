@@ -98,6 +98,9 @@
     </div>
 
     <p class="welcome-goal">🎯 <strong>100 pontos</strong> · buscar todos os amigos</p>
+
+    <!-- Botão discreto ADM (canto inferior) -->
+    <button id="btn-admin" class="btn-admin-access" aria-label="Área da Professora">⚙️ Professora</button>
   </div>
 
   <div class="welcome-ground"></div>
@@ -473,6 +476,89 @@
   </div>
 </div>
 
+
+<!-- ══════════════════════════════════════════════
+     MODAL – LOGIN DA PROFESSORA
+     ══════════════════════════════════════════════ -->
+<div id="modal-admin-login" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="adm-login-title">
+  <div class="modal-box adm-login-box">
+    <h3 id="adm-login-title">🔐 Área da Professora</h3>
+    <p class="adm-login-sub">Digite a senha para continuar.</p>
+    <input id="adm-password" type="password" class="adm-input" placeholder="Senha" inputmode="numeric" maxlength="6" autocomplete="off" />
+    <div id="adm-login-error" class="adm-error" style="display:none"></div>
+    <div class="adm-login-actions">
+      <button id="btn-adm-login-submit" class="btn-adm-primary">Entrar</button>
+      <button id="btn-adm-login-cancel" class="btn-adm-cancel">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     MODAL – PAINEL ADMINISTRATIVO
+     ══════════════════════════════════════════════ -->
+<div id="modal-admin-panel" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="adm-panel-title">
+  <div class="modal-box adm-panel-box">
+
+    <div class="adm-panel-header">
+      <h3 id="adm-panel-title">⚙️ Painel da Professora</h3>
+      <p class="adm-panel-notice">Área restrita — apenas para a professora.</p>
+      <button id="btn-adm-panel-close" class="adm-close-btn" aria-label="Fechar painel">✕</button>
+    </div>
+
+    <!-- Semana atual -->
+    <div id="adm-week-label" class="adm-week-label"></div>
+
+    <!-- Seção principal: botões de ação -->
+    <div id="adm-main-section">
+      <div class="adm-section-grid">
+        <button class="adm-card-btn" id="btn-adm-students">
+          <span class="adm-card-icon">👧</span>
+          <span class="adm-card-label">Alunos</span>
+        </button>
+        <button class="adm-card-btn" id="btn-adm-add-student">
+          <span class="adm-card-icon">➕</span>
+          <span class="adm-card-label">Adicionar aluno</span>
+        </button>
+        <button class="adm-card-btn adm-danger-soft" id="btn-adm-reset-scores">
+          <span class="adm-card-icon">🏆</span>
+          <span class="adm-card-label">Resetar ranking</span>
+        </button>
+        <button class="adm-card-btn adm-danger-soft" id="btn-adm-reset-gifts">
+          <span class="adm-card-icon">🎁</span>
+          <span class="adm-card-label">Resetar presentes</span>
+        </button>
+        <button class="adm-card-btn adm-danger" id="btn-adm-reset-all">
+          <span class="adm-card-icon">🔄</span>
+          <span class="adm-card-label">Resetar tudo</span>
+        </button>
+      </div>
+      <div id="adm-action-feedback" class="adm-feedback" style="display:none"></div>
+    </div>
+
+    <!-- Sub-seção: lista de alunos -->
+    <div id="adm-students-section" class="adm-sub-section hidden">
+      <button class="adm-back-btn" id="btn-adm-back-students">← Voltar</button>
+      <h4 class="adm-sub-title">👧 Alunos e Códigos</h4>
+      <div id="adm-students-list" class="adm-students-list">
+        <div class="adm-loading">Carregando...</div>
+      </div>
+    </div>
+
+    <!-- Sub-seção: adicionar aluno -->
+    <div id="adm-add-section" class="adm-sub-section hidden">
+      <button class="adm-back-btn" id="btn-adm-back-add">← Voltar</button>
+      <h4 class="adm-sub-title">➕ Adicionar Aluno</h4>
+      <label class="adm-field-label">Nome do aluno</label>
+      <input id="adm-new-name" type="text" class="adm-input" placeholder="Nome" maxlength="30" />
+      <label class="adm-field-label">Código secreto (2 dígitos)</label>
+      <input id="adm-new-code" type="text" class="adm-input" placeholder="Ex: 42" maxlength="2" inputmode="numeric" pattern="[0-9]{2}" />
+      <div id="adm-add-error" class="adm-error" style="display:none"></div>
+      <div id="adm-add-success" class="adm-success" style="display:none"></div>
+      <button id="btn-adm-save-student" class="btn-adm-primary" style="margin-top:10px">💾 Salvar aluno</button>
+    </div>
+
+  </div>
+</div>
 
 <script src="script.js"></script>
 </body>
