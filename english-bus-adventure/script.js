@@ -1,2443 +1,2216 @@
-/* ============================================================
-   English Bus Adventure – Lógica do Jogo
-   Escola 25 de Julho · Sapiranga / RS
+ Escola 25 de Julho · Sapiranga/RS
    ============================================================ */
-'use strict';
 
-/* ── Banco de perguntas (85 questões) ──────────────────────
-   Cada questão tem:
-     cat, emoji, q, opts[4], a (índice), hint (dica rápida),
-     teacherHint (dica forte da professora, sem revelar a resposta)
+/* ── Variáveis ────────────────────────────────────────── */
+:root {
+  --sky:       #5BC8F5;
+  --sky-dark:  #3A9FD5;
+  --grass:     #5DBB37;
+  --road:      #888;
+  --road-line: #FFDD44;
+  --bus-body:  #FFD700;
+  --bus-dark:  #E6AC00;
+  --bus-black: #222;
+  --opt-a:     #FF6B6B;
+  --opt-b:     #3DCDC7;
+  --opt-c:     #FFD93D;
+  --opt-d:     #6BCB77;
+  --correct:   #00C853;
+  --wrong:     #FF3B30;
+  --white:     #fff;
+  --card-bg:   #FFFDE7;
+  --header-bg: #1A3C72;
+  --purple:    #9C27B0;
+  --radius:    18px;
+  --shadow:    0 4px 18px rgba(0,0,0,.18);
+}
+
+/* ── Reset & Base ─────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Comic Sans MS', 'Chalkboard SE', 'Marker Felt', cursive, sans-serif;
+  background: #1A3C72;
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Screens ─────────────────────────────────────────── */
+.screen {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  width: 100%;
+  position: relative;
+  animation: fadeIn .35s ease;
+}
+.screen.active { display: flex; }
+
+@keyframes fadeIn {
+  from { opacity:0; transform:translateY(8px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+
+/* ────────────────────────────────────────────────────────
+   TELA DE BEM-VINDO
    ──────────────────────────────────────────────────────── */
-const QUESTIONS = [
-  // ── CORES (10) ────────────────────────────────────────────
-  { cat:'Colors 🎨', emoji:'🌤️', q:'What color is the sky?',
-    opts:['Blue','Red','Green','Yellow'], a:0,
-    hint:'Olhe para o céu num dia de sol!',
-    teacherHint:'Pensa no oceano, no mar e no céu num dia de sol... é a mesma cor!' },
-  { cat:'Colors 🎨', emoji:'🌿', q:'What color is grass?',
-    opts:['Orange','Blue','Green','Pink'], a:2,
-    hint:'Pense no campo perto da escola!',
-    teacherHint:'Olha pela janela para o campo perto da escola. Que cor você vê?' },
-  { cat:'Colors 🎨', emoji:'☀️', q:'What color is the sun?',
-    opts:['Purple','Yellow','White','Black'], a:1,
-    hint:'Ela brilha e nos dá luz!',
-    teacherHint:'É a mesma cor de uma banana madura e de um girassol!' },
-  { cat:'Colors 🎨', emoji:'🍎', q:'What color is a red apple?',
-    opts:['Blue','Green','Red','Yellow'], a:2,
-    hint:'Esta maçã é da cor do fogo!',
-    teacherHint:'É a cor do fogo, dos bombeiros e das rosas do jardim!' },
-  { cat:'Colors 🎨', emoji:'🍊', q:'What color is an orange?',
-    opts:['Orange','Purple','White','Blue'], a:0,
-    hint:'O nome é igual ao da fruta!',
-    teacherHint:'Curiosidade: o nome da cor é exatamente igual ao nome da fruta!' },
-  { cat:'Colors 🎨', emoji:'🥛', q:'What color is milk?',
-    opts:['Red','White','Blue','Yellow'], a:1,
-    hint:'É muito clara, como a neve.',
-    teacherHint:'É a cor da neve, das nuvens e do papel em branco!' },
-  { cat:'Colors 🎨', emoji:'🍌', q:'What color is a banana?',
-    opts:['Pink','White','Yellow','Green'], a:2,
-    hint:'Brilhante como o sol.',
-    teacherHint:'É a cor do ouro, dos pintinhos e do sol no céu!' },
-  { cat:'Colors 🎨', emoji:'🍓', q:'What color is a strawberry?',
-    opts:['Red','Orange','Purple','Blue'], a:0,
-    hint:'Mesma cor dos caminhões de bombeiro!',
-    teacherHint:'Pensa nos carros de bombeiro, nas rosas e no coração... qual cor é essa?' },
-  { cat:'Colors 🎨', emoji:'🍇', q:'What color is a grape?',
-    opts:['Yellow','Red','Purple','White'], a:2,
-    hint:'Uma mistura de azul e vermelho.',
-    teacherHint:'Se você misturar azul com vermelho, que cor fica? É essa!' },
-  { cat:'Colors 🎨', emoji:'🐸', q:'What color is a frog?',
-    opts:['Red','Green','Blue','Yellow'], a:1,
-    hint:'Mesma cor da grama onde ela pula.',
-    teacherHint:'É a cor das folhas, da grama e das árvores da fazenda!' },
+#screen-welcome {
+  background: linear-gradient(180deg, var(--sky) 0%, #B8E4F7 55%, var(--grass) 55%, #3A8A1E 100%);
+  justify-content: flex-end;
+  padding-bottom: 48px;
+}
 
-  // ── NÚMEROS (10) ──────────────────────────────────────────
-  { cat:'Numbers 🔢', emoji:'1️⃣', q:'How do you say "1" in English?',
-    opts:['One','Two','Three','Four'], a:0,
-    hint:'O primeiro número de todos!',
-    teacherHint:'Um, dois, três... qual é o PRIMEIRO número que você conta?' },
-  { cat:'Numbers 🔢', emoji:'2️⃣', q:'How do you say "2" in English?',
-    opts:['Five','Two','Seven','Nine'], a:1,
-    hint:'Dois olhos, duas mãos...',
-    teacherHint:'Olha para os seus dois olhos, suas duas mãos... que número é esse?' },
-  { cat:'Numbers 🔢', emoji:'3️⃣', q:'How do you say "3" in English?',
-    opts:['One','Four','Three','Eight'], a:2,
-    hint:'O triângulo tem esse número de lados.',
-    teacherHint:'Um triângulo tem este número de lados: conta 1, 2, ___!' },
-  { cat:'Numbers 🔢', emoji:'4️⃣', q:'How do you say "4" in English?',
-    opts:['Four','Six','Two','Ten'], a:0,
-    hint:'Um carro tem esse número de rodas.',
-    teacherHint:'Uma mesa tem este número de pernas: 1, 2, 3, ___!' },
-  { cat:'Numbers 🔢', emoji:'5️⃣', q:'How do you say "5" in English?',
-    opts:['Three','Eight','Five','One'], a:2,
-    hint:'Conte os dedos de uma mão!',
-    teacherHint:'Levanta uma mão só e conta os seus dedos! Quantos são?' },
-  { cat:'Numbers 🔢', emoji:'6️⃣', q:'How do you say "6" in English?',
-    opts:['Nine','Seven','Six','Two'], a:2,
-    hint:'Um inseto tem esse número de patas.',
-    teacherHint:'Uma formiga tem este número de perninhas. Conta: 1,2,3,4,5,___!' },
-  { cat:'Numbers 🔢', emoji:'7️⃣', q:'How do you say "7" in English?',
-    opts:['Seven','Four','Two','Eight'], a:0,
-    hint:'Dias da semana = esse número.',
-    teacherHint:'Quantos dias tem uma semana? Dom, Seg, Ter, Qua, Qui, Sex, Sáb...' },
-  { cat:'Numbers 🔢', emoji:'8️⃣', q:'How do you say "8" in English?',
-    opts:['Three','Six','One','Eight'], a:3,
-    hint:'Uma aranha tem esse número de patas.',
-    teacherHint:'Uma aranha tem este número de pernas. Seis mais dois é igual a ___!' },
-  { cat:'Numbers 🔢', emoji:'9️⃣', q:'How do you say "9" in English?',
-    opts:['Five','Nine','Two','Four'], a:1,
-    hint:'Um a menos que dez.',
-    teacherHint:'É o número que vem antes do 10: 7, 8, ___, 10!' },
-  { cat:'Numbers 🔢', emoji:'🔟', q:'How do you say "10" in English?',
-    opts:['Ten','Two','Six','Three'], a:0,
-    hint:'Todos os dedos das duas mãos!',
-    teacherHint:'Conta TODOS os seus dedos das duas mãos juntas: 1 até ___!' },
+/* Nuvens de fundo */
+.welcome-sky { position:absolute; top:0; left:0; right:0; height:55%; pointer-events:none; overflow:hidden; }
 
-  // ── FRUTAS (10) ───────────────────────────────────────────
-  { cat:'Fruits 🍎', emoji:'🍎', q:'"Maçã" in English is…',
-    speakText:'Apple', opts:['Apple','Mango','Pear','Plum'], a:0,
-    hint:'Famosa fruta que Newton viu cair!',
-    teacherHint:'É redonda, pode ser vermelha ou verde, e cai das macieiras!' },
-  { cat:'Fruits 🍎', emoji:'🍌', q:'"Banana" in English is…',
-    speakText:'Banana', opts:['Cherry','Grape','Banana','Lemon'], a:2,
-    hint:'É amarela e os macacos adoram!',
-    teacherHint:'Amarela, curva, os macacos adoram. Parece igual em português!' },
-  { cat:'Fruits 🍎', emoji:'🍊', q:'"Laranja" in English is…',
-    speakText:'Orange', opts:['Apple','Orange','Peach','Kiwi'], a:1,
-    hint:'O nome dela também é uma cor!',
-    teacherHint:'O nome desta fruta é igual ao nome de uma cor! (a cor laranja = orange)' },
-  { cat:'Fruits 🍎', emoji:'🍓', q:'"Morango" in English is…',
-    speakText:'Strawberry', opts:['Strawberry','Blueberry','Cherry','Peach'], a:0,
-    hint:'Vermelha, pequena e doce!',
-    teacherHint:'Pequena, vermelha, com sementes por fora. Cresce rente ao chão!' },
-  { cat:'Fruits 🍎', emoji:'🍇', q:'"Uva" in English is…',
-    speakText:'Grape', opts:['Melon','Grape','Plum','Mango'], a:1,
-    hint:'Cresce em cachos na parreira.',
-    teacherHint:'Cresce em cachos na parreira. Pode ser roxa, verde ou vermelha!' },
-  { cat:'Fruits 🍎', emoji:'🍍', q:'"Abacaxi" in English is…',
-    speakText:'Pineapple', opts:['Papaya','Coconut','Pineapple','Mango'], a:2,
-    hint:'Coroa espetada e doce por dentro!',
-    teacherHint:'Tem uma coroa de folhas espetadas em cima e é muito doce por dentro!' },
-  { cat:'Fruits 🍎', emoji:'🍉', q:'"Melancia" in English is…',
-    speakText:'Watermelon', opts:['Watermelon','Cantaloupe','Lemon','Lime'], a:0,
-    hint:'Grande, verde por fora e vermelha por dentro!',
-    teacherHint:'Enorme, verde por fora, vermelha por dentro, cheia de água!' },
-  { cat:'Fruits 🍎', emoji:'🍋', q:'"Limão" in English is…',
-    speakText:'Lemon', opts:['Apple','Banana','Lemon','Grape'], a:2,
-    hint:'Muito azedo e amarelo!',
-    teacherHint:'Amarelo ou verde, muito azedo. Faz limonada! Rima com "demon".' },
-  { cat:'Fruits 🍎', emoji:'🥭', q:'"Manga" in English is…',
-    speakText:'Mango', opts:['Melon','Peach','Plum','Mango'], a:3,
-    hint:'Tropical e muito doce!',
-    teacherHint:'Fruta tropical muito doce, laranja por dentro. Quase soa igual em português!' },
-  { cat:'Fruits 🍎', emoji:'🍑', q:'"Pêssego" in English is…',
-    speakText:'Peach', opts:['Cherry','Peach','Plum','Apple'], a:1,
-    hint:'Macio, redondo e cor de laranja-rosado.',
-    teacherHint:'Macia, redonda, cor de rosa-alaranjado. Cresce em regiões mais frias do RS!' },
+.cloud {
+  position: absolute;
+  background: rgba(255,255,255,.85);
+  border-radius: 50px;
+}
+.cloud::before, .cloud::after {
+  content:''; position:absolute;
+  background:inherit; border-radius:50%;
+}
+.c1 { width:130px; height:42px; top:18%; left:5%;  animation: drift 22s linear infinite; }
+.c1::before { width:60px; height:56px; top:-24px; left:18px; }
+.c1::after  { width:48px; height:44px; top:-18px; left:58px; }
 
-  // ── TRANSPORTES (8) ───────────────────────────────────────
-  { cat:'Transport 🚌', emoji:'🚌', q:'"Ônibus" in English is…',
-    speakText:'Bus', opts:['Car','Bus','Train','Boat'], a:1,
-    hint:'Te leva para a escola todo dia!',
-    teacherHint:'É grande, tem várias fileiras de bancos e te traz para a escola! Pensa bem...' },
-  { cat:'Transport 🚌', emoji:'🚗', q:'"Carro" in English is…',
-    speakText:'Car', opts:['Bike','Car','Truck','Bus'], a:1,
-    hint:'Quatro rodas, a família usa.',
-    teacherHint:'Tem 4 rodas, motor, 4 ou 5 lugares. Sua família usa para passear!' },
-  { cat:'Transport 🚌', emoji:'🚲', q:'"Bicicleta" in English is…',
-    speakText:'Bicycle', opts:['Motorcycle','Tractor','Bicycle','Bus'], a:2,
-    hint:'Duas rodas, você pedala.',
-    teacherHint:'Tem 2 rodas, você pedala com as pernas. Não tem motor!' },
-  { cat:'Transport 🚌', emoji:'🚂', q:'"Trem" in English is…',
-    speakText:'Train', opts:['Bus','Car','Train','Boat'], a:2,
-    hint:'Anda nos trilhos e apita!',
-    teacherHint:'Anda sobre trilhos de ferro, faz fila de vagões e apita!' },
-  { cat:'Transport 🚌', emoji:'✈️', q:'"Avião" in English is…',
-    speakText:'Airplane', opts:['Airplane','Helicopter','Rocket','Boat'], a:0,
-    hint:'Voa bem alto no céu.',
-    teacherHint:'Voa bem alto no céu, mais alto que os pássaros e as nuvens!' },
-  { cat:'Transport 🚌', emoji:'⛵', q:'"Barco" in English is…',
-    speakText:'Boat', opts:['Train','Bicycle','Car','Boat'], a:3,
-    hint:'Flutua na água.',
-    teacherHint:'Flutua na água e leva pessoas pelos rios, lagos e oceanos!' },
-  { cat:'Transport 🚌', emoji:'🚜', q:'"Trator" in English is…',
-    speakText:'Tractor', opts:['Truck','Tractor','Bus','Car'], a:1,
-    hint:'Os fazendeiros usam no campo!',
-    teacherHint:'É usado na fazenda para arar a terra e plantar. Os agricultores adoram!' },
-  { cat:'Transport 🚌', emoji:'🏍️', q:'"Moto" in English is…',
-    speakText:'Motorcycle', opts:['Motorcycle','Bicycle','Scooter','Bus'], a:0,
-    hint:'Duas rodas, mas tem motor.',
-    teacherHint:'Tem 2 rodas como a bicicleta, mas tem motor. Faz barulho!' },
+.c2 { width:90px; height:30px; top:38%; left:52%; animation: drift 28s linear infinite 6s; }
+.c2::before { width:42px; height:40px; top:-18px; left:14px; }
+.c2::after  { width:34px; height:30px; top:-14px; left:44px; }
 
-  // ── SALA DE AULA (10) ─────────────────────────────────────
-  { cat:'Classroom 🏫', emoji:'📚', q:'"Livro" in English is…',
-    speakText:'Book', opts:['Pencil','Book','Ruler','Pen'], a:1,
-    hint:'Você lê histórias dentro dele.',
-    teacherHint:'Tem capa, folhas e páginas. Você lê histórias dentro dele!' },
-  { cat:'Classroom 🏫', emoji:'✏️', q:'"Lápis" in English is…',
-    speakText:'Pencil', opts:['Pencil','Eraser','Pen','Ruler'], a:0,
-    hint:'Você desenha e escreve com ele.',
-    teacherHint:'É de madeira por fora, grafite por dentro. Serve para escrever e desenhar!' },
-  { cat:'Classroom 🏫', emoji:'🧹', q:'"Borracha" in English is…',
-    speakText:'Eraser', opts:['Glue','Ruler','Eraser','Scissors'], a:2,
-    hint:'Remove as marcas do lápis.',
-    teacherHint:'Serve para apagar o que você escreveu a lápis. Ela "apaga" os erros!' },
-  { cat:'Classroom 🏫', emoji:'📓', q:'"Caderno" in English is…',
-    speakText:'Notebook', opts:['Book','Notebook','Folder','Album'], a:1,
-    hint:'Você escreve as lições aqui.',
-    teacherHint:'Tem muitas folhas pautadas onde você escreve a lição da professora!' },
-  { cat:'Classroom 🏫', emoji:'🖊️', q:'"Caneta" in English is…',
-    speakText:'Pen', opts:['Pen','Pencil','Marker','Brush'], a:0,
-    hint:'Usa tinta, não grafite.',
-    teacherHint:'Usa tinta (não grafite como o lápis). Difícil de apagar!' },
-  { cat:'Classroom 🏫', emoji:'📏', q:'"Régua" in English is…',
-    speakText:'Ruler', opts:['Scissors','Glue','Pencil','Ruler'], a:3,
-    hint:'Ferramenta reta para traçar linhas.',
-    teacherHint:'É reta, comprida e usada para traçar linhas direitinhas e medir!' },
-  { cat:'Classroom 🏫', emoji:'✂️', q:'"Tesoura" in English is…',
-    speakText:'Scissors', opts:['Glue','Scissors','Tape','Ruler'], a:1,
-    hint:'Duas lâminas afiadas para cortar.',
-    teacherHint:'Tem duas lâminas que se cruzam e servem para cortar papel e tecido!' },
-  { cat:'Classroom 🏫', emoji:'🎒', q:'"Mochila" in English is…',
-    speakText:'Backpack', opts:['Backpack','Bag','Box','Folder'], a:0,
-    hint:'Você carrega nas costas até a escola.',
-    teacherHint:'Você carrega nas costas, com alças nos dois ombros, cheia de livros!' },
-  { cat:'Classroom 🏫', emoji:'👩‍🏫', q:'"Professora" in English is…',
-    speakText:'Teacher', opts:['Student','Teacher','Principal','Doctor'], a:1,
-    hint:'Ela te ensina todo dia!',
-    teacherHint:'É a pessoa que ensina toda a turma, explica as lições e corrige os cadernos!' },
-  { cat:'Classroom 🏫', emoji:'🪑', q:'"Cadeira" in English is…',
-    speakText:'Chair', opts:['Table','Door','Chair','Window'], a:2,
-    hint:'Você senta nela na sala de aula.',
-    teacherHint:'É o móvel com pernas onde você SENTA para estudar na sala!' },
+.c3 { width:70px; height:22px; top:10%; left:75%; animation: drift 20s linear infinite 3s; }
+.c3::before { width:32px; height:32px; top:-14px; left:10px; }
+.c3::after  { width:26px; height:22px; top:-10px; left:32px; }
 
-  // ── BRINQUEDOS (8) ────────────────────────────────────────
-  { cat:'Toys 🎲', emoji:'⚽', q:'"Bola" in English is…',
-    speakText:'Ball', opts:['Bat','Ball','Rope','Kite'], a:1,
-    hint:'Redonda – você chuta!',
-    teacherHint:'É redonda, você chuta, arremessa ou quica no chão ao brincar!' },
-  { cat:'Toys 🎲', emoji:'🪆', q:'"Boneca" in English is…',
-    speakText:'Doll', opts:['Robot','Car','Doll','Bear'], a:2,
-    hint:'Um brinquedo que parece uma pessoa.',
-    teacherHint:'Brinquedo com formato humano, que parece uma menininha ou bebê!' },
-  { cat:'Toys 🎲', emoji:'🪁', q:'"Pipa" in English is…',
-    speakText:'Kite', opts:['Ball','Rope','Kite','Puzzle'], a:2,
-    hint:'Você solta ela no vento!',
-    teacherHint:'Você segura num fio e ela voa lá no alto quando tem vento!' },
-  { cat:'Toys 🎲', emoji:'🧸', q:'"Urso de pelúcia" in English is…',
-    speakText:'Teddy Bear', opts:['Toy Car','Kite','Puppet','Teddy Bear'], a:3,
-    hint:'Um urso macio para abraçar!',
-    teacherHint:'É macio, fofinho, em forma de urso. Todo mundo quer dar abraço nele!' },
-  { cat:'Toys 🎲', emoji:'🧩', q:'"Quebra-cabeça" in English is…',
-    speakText:'Puzzle', opts:['Game','Puzzle','Doll','Ball'], a:1,
-    hint:'Você encaixa as peças.',
-    teacherHint:'Tem muitas peças que você encaixa para formar uma imagem completa!' },
-  { cat:'Toys 🎲', emoji:'🪢', q:'"Corda de pular" in English is…',
-    speakText:'Jump Rope', opts:['Jump Rope','Kite','Bat','Ball'], a:0,
-    hint:'Você pula por cima!',
-    teacherHint:'Duas crianças seguram as pontas e você pula por cima enquanto ela gira!' },
-  { cat:'Toys 🎲', emoji:'🚗', q:'"Carrinho de brinquedo" in English is…',
-    speakText:'Toy Car', opts:['Toy Car','Doll','Kite','Ball'], a:0,
-    hint:'Um carrinho pequeno para brincar.',
-    teacherHint:'É uma versão pequenininha de um veículo. Você faz "vrummm" com ele!' },
-  { cat:'Toys 🎲', emoji:'🎮', q:'"Brinquedo" in English is…',
-    speakText:'Toy', opts:['School','Toy','Play','Game'], a:1,
-    hint:'Algo divertido para brincar!',
-    teacherHint:'Qualquer objeto com que você se diverte e brinca nas horas livres!' },
+@keyframes drift {
+  from { transform:translateX(0); }
+  to   { transform:translateX(-120vw); }
+}
 
-  // ── AÇÕES (10) ────────────────────────────────────────────
-  { cat:'Actions 🏃', emoji:'🏃', q:'"Correr" in English is…',
-    speakText:'Run', opts:['Jump','Walk','Run','Swim'], a:2,
-    hint:'Mover os pés muito rápido!',
-    teacherHint:'É mover as pernas muito rapidamente – mais rápido que andar!' },
-  { cat:'Actions 🏃', emoji:'🤸', q:'"Pular" in English is…',
-    speakText:'Jump', opts:['Run','Jump','Fly','Swim'], a:1,
-    hint:'Sair do chão com os dois pés!',
-    teacherHint:'É sair do chão com força, como um canguru ou uma rã!' },
-  { cat:'Actions 🏃', emoji:'🎵', q:'"Cantar" in English is…',
-    speakText:'Sing', opts:['Dance','Draw','Sing','Write'], a:2,
-    hint:'Fazer música com a sua voz.',
-    teacherHint:'É usar a voz para fazer música, com melodia e palavras!' },
-  { cat:'Actions 🏃', emoji:'💃', q:'"Dançar" in English is…',
-    speakText:'Dance', opts:['Sing','Dance','Run','Jump'], a:1,
-    hint:'Mover o corpo ao ritmo da música.',
-    teacherHint:'É mover o corpo seguindo o ritmo e a batida da música!' },
-  { cat:'Actions 🏃', emoji:'📖', q:'"Ler" in English is…',
-    speakText:'Read', opts:['Write','Draw','Read','Paint'], a:2,
-    hint:'O que você faz com um livro.',
-    teacherHint:'É olhar para as letras e entender o que está escrito no livro!' },
-  { cat:'Actions 🏃', emoji:'✍️', q:'"Escrever" in English is…',
-    speakText:'Write', opts:['Read','Draw','Paint','Write'], a:3,
-    hint:'Você coloca letras no papel.',
-    teacherHint:'É fazer letras, palavras e frases no papel com caneta ou lápis!' },
-  { cat:'Actions 🏃', emoji:'🎉', q:'"Brincar" in English is…',
-    speakText:'Play', opts:['Eat','Sleep','Play','Run'], a:2,
-    hint:'O que você faz no recreio!',
-    teacherHint:'É se divertir com brinquedos ou amigos. Você faz isso no recreio!' },
-  { cat:'Actions 🏃', emoji:'🍽️', q:'"Comer" in English is…',
-    speakText:'Eat', opts:['Drink','Eat','Sleep','Run'], a:1,
-    hint:'A comida entra pela boca.',
-    teacherHint:'É pegar o alimento, mastigar e engolir. O almoço é quando você ___!' },
-  { cat:'Actions 🏃', emoji:'💧', q:'"Beber" in English is…',
-    speakText:'Drink', opts:['Eat','Play','Drink','Run'], a:2,
-    hint:'A água entra pela boca.',
-    teacherHint:'É colocar líquido na boca e engolir. Você ___ água quando está com sede!' },
-  { cat:'Actions 🏃', emoji:'😴', q:'"Dormir" in English is…',
-    speakText:'Sleep', opts:['Eat','Run','Play','Sleep'], a:3,
-    hint:'Feche os olhos e descanse.',
-    teacherHint:'É fechar os olhos, deitar na cama e descansar à noite!' },
+.welcome-ground {
+  display: none; /* handled by body gradient */
+}
 
-  // ── ANIMAIS DA FAZENDA (9) ────────────────────────────────
-  { cat:'Animals 🐄', emoji:'🐶', q:'"Cachorro" in English is…',
-    speakText:'Dog', opts:['Cat','Dog','Bird','Fish'], a:1,
-    hint:'O melhor amigo do homem!',
-    teacherHint:'É o animal de estimação que late, abana o rabo e é muito fiel!' },
-  { cat:'Animals 🐄', emoji:'🐱', q:'"Gato" in English is…',
-    speakText:'Cat', opts:['Dog','Rabbit','Cat','Horse'], a:2,
-    hint:'Ela diz miau!',
-    teacherHint:'É o animal que mia, ronrona e adora dormir no sol!' },
-  { cat:'Animals 🐄', emoji:'🐄', q:'"Vaca" in English is…',
-    speakText:'Cow', opts:['Pig','Sheep','Horse','Cow'], a:3,
-    hint:'Ela nos dá leite!',
-    teacherHint:'É o animal da fazenda que dá leite e faz "muuuu"!' },
-  { cat:'Animals 🐄', emoji:'🐴', q:'"Cavalo" in English is…',
-    speakText:'Horse', opts:['Horse','Donkey','Cow','Pig'], a:0,
-    hint:'Você pode montar nele na fazenda.',
-    teacherHint:'É o animal grande que você pode montar e cavalgar pela fazenda!' },
-  { cat:'Animals 🐄', emoji:'🐔', q:'"Galinha" in English is…',
-    speakText:'Chicken', opts:['Duck','Turkey','Chicken','Goose'], a:2,
-    hint:'Ela bota ovos e faz cocoricó!',
-    teacherHint:'Ela bota ovos, vive no galinheiro e faz "cocoricó"!' },
-  { cat:'Animals 🐄', emoji:'🐟', q:'"Peixe" in English is…',
-    speakText:'Fish', opts:['Bird','Fish','Snake','Frog'], a:1,
-    hint:'Ele vive na água e nada.',
-    teacherHint:'Vive dentro da água, tem barbatanas e escamas, e nada!' },
-  { cat:'Animals 🐄', emoji:'🐦', q:'"Pássaro" in English is…',
-    speakText:'Bird', opts:['Bird','Fish','Bug','Worm'], a:0,
-    hint:'Tem asas e consegue voar!',
-    teacherHint:'Tem asas, bico e penas. A maioria sabe voar alto!' },
-  { cat:'Animals 🐄', emoji:'🐰', q:'"Coelho" in English is…',
-    speakText:'Rabbit', opts:['Mouse','Hamster','Rabbit','Pig'], a:2,
-    hint:'Orelhas longas, fica pulando!',
-    teacherHint:'Tem orelhas longas, fica pulando e adora cenoura!' },
-  { cat:'Animals 🐄', emoji:'🐷', q:'"Porco" in English is…',
-    speakText:'Pig', opts:['Cow','Pig','Goat','Sheep'], a:1,
-    hint:'Ele diz oinc oinc!',
-    teacherHint:'Animal rosado da fazenda que vive na pocilga e diz "oinc oinc"!' },
+/* Card central */
+.welcome-card {
+  position: relative;
+  z-index: 10;
+  background: var(--white);
+  border-radius: 28px;
+  padding: 28px 32px 30px;
+  width: 90%;
+  max-width: 460px;
+  box-shadow: 0 8px 40px rgba(0,0,0,.22);
+  text-align: center;
+  margin-bottom: 60px;
+}
 
-  // ── CUMPRIMENTOS E BÁSICO (10) ────────────────────────────
-  { cat:'Greetings 👋', emoji:'👋', q:'"Olá" in English is…',
-    speakText:'Hello', opts:['Bye','Hello','Thanks','Sorry'], a:1,
-    hint:'O que você diz ao encontrar alguém!',
-    teacherHint:'É o cumprimento que você usa ao ENCONTRAR alguém. Igual ao "oi" em inglês!' },
-  { cat:'Greetings 👋', emoji:'👋', q:'"Tchau" in English is…',
-    speakText:'Goodbye', opts:['Hello','Yes','Goodbye','No'], a:2,
-    hint:'O que você diz ao ir embora.',
-    teacherHint:'É o que você diz ao IR EMBORA, ao final do dia na escola!' },
-  { cat:'Greetings 👋', emoji:'✅', q:'"Sim" in English is…',
-    speakText:'Yes', opts:['No','Maybe','Yes','Please'], a:2,
-    hint:'Balance a cabeça para cima e para baixo.',
-    teacherHint:'Quando você CONCORDA, balança a cabeça para cima e para baixo. Qual palavra é essa?' },
-  { cat:'Greetings 👋', emoji:'❌', q:'"Não" in English is…',
-    speakText:'No', opts:['No','Yes','Please','Thanks'], a:0,
-    hint:'Balance a cabeça para os lados.',
-    teacherHint:'Quando você NÃO QUER algo, balança a cabeça para os lados. Qual palavra é essa?' },
-  { cat:'Greetings 👋', emoji:'🙏', q:'"Por favor" in English is…',
-    speakText:'Please', opts:['Thank you','Sorry','Please','Hello'], a:2,
-    hint:'Você diz isso quando pede algo.',
-    teacherHint:'É a palavra de educação que usamos ao PEDIR algo. "Pode me ajudar, ___?"' },
-  { cat:'Greetings 👋', emoji:'😊', q:'"Obrigado/a" in English is…',
-    speakText:'Thank you', opts:['Please','Thank you','Sorry','Hi'], a:1,
-    hint:'Você diz isso depois de receber ajuda.',
-    teacherHint:'É o que você fala DEPOIS de receber um presente ou ajuda de alguém!' },
-  { cat:'Greetings 👋', emoji:'☀️', q:'"Bom dia" in English is…',
-    speakText:'Good morning', opts:['Good night','Good afternoon','Good morning','Goodbye'], a:2,
-    hint:'Você diz isso de manhã!',
-    teacherHint:'É o cumprimento de MANHÃ, antes do almoço, quando você chega na escola!' },
-  { cat:'Greetings 👋', emoji:'🌅', q:'"Boa tarde" in English is…',
-    speakText:'Good afternoon', opts:['Good morning','Good afternoon','Good night','Hello'], a:1,
-    hint:'Cumprimento depois do almoço.',
-    teacherHint:'É o cumprimento depois do almoço, no período da TARDE!' },
-  { cat:'Greetings 👋', emoji:'🌙', q:'"Boa noite" in English is…',
-    speakText:'Good night', opts:['Good morning','Good day','Good night','Goodbye'], a:2,
-    hint:'Você diz isso antes de dormir.',
-    teacherHint:'É o cumprimento antes de dormir, quando o céu já está escuro e cheio de estrelas!' },
-  { cat:'Greetings 👋', emoji:'🗣️', q:"How do you ask someone's name?",
-    opts:['What is your name?','How old are you?','Where do you live?','How are you?'], a:0,
-    hint:'Qual é o seu nome?',
-    teacherHint:'Em português é "Qual é o seu nome?". Começa com "What is your ___?"' },
+.school-badge {
+  display: inline-block;
+  background: #1A3C72;
+  color: #fff;
+  font-size: .78rem;
+  padding: 5px 14px;
+  border-radius: 20px;
+  margin-bottom: 14px;
+  font-family: sans-serif;
+  font-weight: 700;
+  letter-spacing: .5px;
+}
 
-  // ── ANIMAIS DA FAZENDA – EXTRA (15) ──────────────────────
-  { cat:'Farm Animals 🐄', emoji:'🐓', q:'"Galo" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Galo'},{lang:'en-US',text:'in English is'}],
-    speakText:'Rooster', opts:['Rooster','Duck','Turkey','Goose'], a:0,
-    explanation:'Rooster quer dizer galo.',
-    hint:'O macho da galinha que canta de manhã!',
-    teacherHint:'É o animal que canta "cocoricó" bem cedinho para acordar todo mundo na fazenda!' },
-  { cat:'Farm Animals 🐄', emoji:'🦆', q:'"Pato" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Pato'},{lang:'en-US',text:'in English is'}],
-    speakText:'Duck', opts:['Chicken','Duck','Goose','Turkey'], a:1,
-    explanation:'Duck quer dizer pato.',
-    hint:'Nada na água e faz quá quá!',
-    teacherHint:'É um pássaro que ama água, nada bem e faz um barulho bem engraçado!' },
-  { cat:'Farm Animals 🐄', emoji:'🐑', q:'"Ovelha" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Ovelha'},{lang:'en-US',text:'in English is'}],
-    speakText:'Sheep', opts:['Goat','Cow','Sheep','Donkey'], a:2,
-    explanation:'Sheep quer dizer ovelha.',
-    hint:'Tem lã grossa e faz méé!',
-    teacherHint:'É o animal branco e fofo cuja lã usamos para fazer roupas quentes no inverno!' },
-  { cat:'Farm Animals 🐄', emoji:'🐐', q:'"Cabra" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Cabra'},{lang:'en-US',text:'in English is'}],
-    speakText:'Goat', opts:['Sheep','Goat','Cow','Pig'], a:1,
-    explanation:'Goat quer dizer cabra.',
-    hint:'Tem chifrinho e sobe em morros!',
-    teacherHint:'É um animal com chifrinhos que consegue subir em lugares íngremes e adora comer folhas!' },
-  { cat:'Farm Animals 🐄', emoji:'🐝', q:'"Abelha" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Abelha'},{lang:'en-US',text:'in English is'}],
-    speakText:'Bee', opts:['Butterfly','Bee','Ant','Fly'], a:1,
-    explanation:'Bee quer dizer abelha.',
-    hint:'Faz mel e mora em colmeia!',
-    teacherHint:'É o inseto que voa de flor em flor e produz mel delicioso para comermos!' },
-  { cat:'Farm Animals 🐄', emoji:'🐴', q:'"Burro" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Burro'},{lang:'en-US',text:'in English is'}],
-    speakText:'Donkey', opts:['Horse','Donkey','Mule','Ox'], a:1,
-    explanation:'Donkey quer dizer burro.',
-    hint:'Parece um cavalo menor, com orelhas longas!',
-    teacherHint:'É um animal de carga com orelhas grandes. Faz o barulho "i-ó, i-ó"!' },
-  { cat:'Farm Animals 🐄', emoji:'🦃', q:'"Peru" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Peru'},{lang:'en-US',text:'in English is'}],
-    speakText:'Turkey', opts:['Turkey','Rooster','Duck','Goose'], a:0,
-    explanation:'Turkey quer dizer peru.',
-    hint:'Ave grande que abre a cauda como um leque!',
-    teacherHint:'É uma ave grande da fazenda que abre a cauda como um leque quando quer chamar atenção!' },
-  { cat:'Farm Animals 🐄', emoji:'🐂', q:'"Boi" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Boi'},{lang:'en-US',text:'in English is'}],
-    speakText:'Ox', opts:['Bull','Ox','Cow','Horse'], a:1,
-    explanation:'Ox quer dizer boi.',
-    hint:'Animal grande e forte da fazenda.',
-    teacherHint:'É o bovino forte que ajudava a puxar o arado no campo. Muito visto nas fazendas do RS!' },
-  { cat:'Farm Animals 🐄', emoji:'🦢', q:'"Ganso" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Ganso'},{lang:'en-US',text:'in English is'}],
-    speakText:'Goose', opts:['Duck','Turkey','Goose','Hen'], a:2,
-    explanation:'Goose quer dizer ganso.',
-    hint:'Ave grande e branca com pescoço longo!',
-    teacherHint:'É uma ave parecida com o pato, mas maior, com pescoço longo e muito barulhenta!' },
-  { cat:'Farm Animals 🐄', emoji:'🐮', q:'"Bezerro" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Bezerro'},{lang:'en-US',text:'in English is'}],
-    speakText:'Calf', opts:['Calf','Bull','Foal','Lamb'], a:0,
-    explanation:'Calf quer dizer bezerro.',
-    hint:'É o filhotinho da vaca.',
-    teacherHint:'É o bebê da vaca! Quando nasce, toma leite da mamãe vaca!' },
-  { cat:'Farm Animals 🐄', emoji:'🐑', q:'"Cordeiro" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Cordeiro'},{lang:'en-US',text:'in English is'}],
-    speakText:'Lamb', opts:['Lamb','Calf','Foal','Piglet'], a:0,
-    explanation:'Lamb quer dizer cordeiro.',
-    hint:'É o filhotinho da ovelha.',
-    teacherHint:'É o bebê da ovelha. É muito fofinho e tem lã macia e branquinha!' },
-  { cat:'Farm Animals 🐄', emoji:'🐎', q:'"Potro" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Potro'},{lang:'en-US',text:'in English is'}],
-    speakText:'Foal', opts:['Foal','Pony','Colt','Fawn'], a:0,
-    explanation:'Foal quer dizer potro.',
-    hint:'É o filhotinho do cavalo.',
-    teacherHint:'É o bebê do cavalo. Tem pernas compridas e logo aprende a correr rápido!' },
-  { cat:'Farm Animals 🐄', emoji:'🐐', q:'"Cabrito" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Cabrito'},{lang:'en-US',text:'in English is'}],
-    speakText:'Kid', opts:['Kid','Lamb','Calf','Foal'], a:0,
-    explanation:'Kid quer dizer cabrito.',
-    hint:'É o filhotinho da cabra.',
-    teacherHint:'É o bebê da cabra. A palavra em inglês é a mesma que usamos para dizer "criança"!' },
-  { cat:'Farm Animals 🐄', emoji:'🐜', q:'"Formiga" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Formiga'},{lang:'en-US',text:'in English is'}],
-    speakText:'Ant', opts:['Bee','Fly','Ant','Worm'], a:2,
-    explanation:'Ant quer dizer formiga.',
-    hint:'Pequenininha, mas muito forte e trabalhadora!',
-    teacherHint:'É um inseto muito pequeno que carrega folhas e forma fileiras. Muito comum no sítio!' },
-  { cat:'Farm Animals 🐄', emoji:'🪱', q:'"Minhoca" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Minhoca'},{lang:'en-US',text:'in English is'}],
-    speakText:'Worm', opts:['Snake','Worm','Caterpillar','Beetle'], a:1,
-    explanation:'Worm quer dizer minhoca.',
-    hint:'Vive na terra e é amiga das plantas!',
-    teacherHint:'É um animalzinho que vive na terra, ajuda o solo a ficar saudável e as plantas a crescerem!' },
+.game-title {
+  line-height: 1.05;
+  margin-bottom: 10px;
+}
+.title-english {
+  display: block;
+  font-size: 2.4rem;
+  color: #1A3C72;
+  text-shadow: 2px 2px 0 #B8D8FF;
+}
+.title-bus {
+  display: block;
+  font-size: 2rem;
+  background: linear-gradient(135deg, #FFD700, #FF8C00);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
 
-  // ── MÁQUINAS AGRÍCOLAS (8) ────────────────────────────────
-  { cat:'Farm Machines 🚜', emoji:'🚜', q:'"Trator" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Trator'},{lang:'en-US',text:'in English is'}],
-    speakText:'Tractor', opts:['Tractor','Harvester','Bus','Truck'], a:0,
-    explanation:'Tractor quer dizer trator.',
-    hint:'Máquina grande e muito usada na lavoura.',
-    teacherHint:'Pense na máquina com rodas enormes que trabalha no campo plantando e carregando!' },
-  { cat:'Farm Machines 🚜', emoji:'🌾', q:'"Colheitadeira" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Colheitadeira'},{lang:'en-US',text:'in English is'}],
-    speakText:'Harvester', opts:['Planter','Harvester','Tractor','Plow'], a:1,
-    explanation:'Harvester quer dizer colheitadeira.',
-    hint:'Serve para colher grãos no campo.',
-    teacherHint:'É a máquina grande que passa pela lavoura e colhe milho, soja e outros grãos sozinha!' },
-  { cat:'Farm Machines 🚜', emoji:'⚙️', q:'"Arado" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Arado'},{lang:'en-US',text:'in English is'}],
-    speakText:'Plow', opts:['Plow','Rake','Hoe','Shovel'], a:0,
-    explanation:'Plow quer dizer arado.',
-    hint:'Abre sulcos na terra para plantar.',
-    teacherHint:'É o equipamento que o trator puxa para virar e preparar a terra antes de plantar!' },
-  { cat:'Farm Machines 🚜', emoji:'🚛', q:'"Reboque" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Reboque'},{lang:'en-US',text:'in English is'}],
-    speakText:'Trailer', opts:['Truck','Trailer','Container','Cart'], a:1,
-    explanation:'Trailer quer dizer reboque.',
-    hint:'O trator puxa ele carregado de produtos.',
-    teacherHint:'É a carroceria que fica atrás do trator para carregar grãos, ferramentas ou animais!' },
-  { cat:'Farm Machines 🚜', emoji:'💧', q:'"Aspersor" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Aspersor'},{lang:'en-US',text:'in English is'}],
-    speakText:'Sprinkler', opts:['Pump','Sprinkler','Well','Pipe'], a:1,
-    explanation:'Sprinkler quer dizer aspersor.',
-    hint:'Joga água nas plantas para irrigar.',
-    teacherHint:'É o equipamento que espalha água pela lavoura para molhar as plantas quando não chove!' },
-  { cat:'Farm Machines 🚜', emoji:'🏗️', q:'"Silo" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Silo'},{lang:'en-US',text:'in English is'}],
-    speakText:'Silo', opts:['Silo','Barn','Shed','Tank'], a:0,
-    explanation:'Silo quer dizer silo.',
-    hint:'Serve para guardar grãos da colheita.',
-    teacherHint:'É a torre grande onde os agricultores guardam o milho, a soja e outros grãos colhidos!' },
-  { cat:'Farm Machines 🚜', emoji:'🚚', q:'"Caminhão" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Caminhão'},{lang:'en-US',text:'in English is'}],
-    speakText:'Truck', opts:['Truck','Bus','Van','Car'], a:0,
-    explanation:'Truck quer dizer caminhão.',
-    hint:'Veículo grande para carregar produtos da fazenda.',
-    teacherHint:'É um veículo grande e pesado que leva as mercadorias da fazenda para a cidade!' },
-  { cat:'Farm Machines 🚜', emoji:'🌱', q:'"Plantadeira" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Plantadeira'},{lang:'en-US',text:'in English is'}],
-    speakText:'Planter', opts:['Plow','Harvester','Planter','Sprinkler'], a:2,
-    explanation:'Planter quer dizer plantadeira.',
-    hint:'Planta as sementes na terra de forma automática.',
-    teacherHint:'É a máquina que abre a terra, coloca a semente e fecha, tudo de uma vez só!' },
+/* ── Ônibus decorativo ── */
+.deco-bus {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin: 12px auto;
+  width: 190px;
+  animation: busBounce .7s ease-in-out infinite;
+}
+@keyframes busBounce {
+  0%,100% { transform:translateY(0); }
+  50%      { transform:translateY(-5px); }
+}
 
-  // ── FERRAMENTAS RURAIS (8) ────────────────────────────────
-  { cat:'Farm Tools 🔨', emoji:'⛏️', q:'"Enxada" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Enxada'},{lang:'en-US',text:'in English is'}],
-    speakText:'Hoe', opts:['Hoe','Shovel','Rake','Axe'], a:0,
-    explanation:'Hoe quer dizer enxada.',
-    hint:'Ferramenta para capinar e mexer na terra.',
-    teacherHint:'É a ferramenta de cabo longo que serve para limpar o mato da lavoura e preparar a terra!' },
-  { cat:'Farm Tools 🔨', emoji:'🪣', q:'"Pá" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Pá'},{lang:'en-US',text:'in English is'}],
-    speakText:'Shovel', opts:['Rake','Hoe','Shovel','Fork'], a:2,
-    explanation:'Shovel quer dizer pá.',
-    hint:'Serve para cavar e mover terra.',
-    teacherHint:'É uma ferramenta com lâmina larga que serve para cavar buracos e mover terra ou areia!' },
-  { cat:'Farm Tools 🔨', emoji:'🧹', q:'"Rastelo" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Rastelo'},{lang:'en-US',text:'in English is'}],
-    speakText:'Rake', opts:['Rake','Broom','Hoe','Shovel'], a:0,
-    explanation:'Rake quer dizer rastelo.',
-    hint:'Tem vários dentes e junta folhas e palha.',
-    teacherHint:'É a ferramenta com vários dentes usada para juntar folhas, palha e nivelar a terra!' },
-  { cat:'Farm Tools 🔨', emoji:'🛒', q:'"Carrinho de mão" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Carrinho de mão'},{lang:'en-US',text:'in English is'}],
-    speakText:'Wheelbarrow', opts:['Wheelbarrow','Cart','Wagon','Trolley'], a:0,
-    explanation:'Wheelbarrow quer dizer carrinho de mão.',
-    hint:'Tem uma roda e serve para carregar terra.',
-    teacherHint:'É o carricho com uma roda na frente e duas alças atrás, que carrega terra e esterco!' },
-  { cat:'Farm Tools 🔨', emoji:'🪣', q:'"Balde" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Balde'},{lang:'en-US',text:'in English is'}],
-    speakText:'Bucket', opts:['Barrel','Bucket','Box','Pot'], a:1,
-    explanation:'Bucket quer dizer balde.',
-    hint:'Serve para carregar água ou leite na fazenda.',
-    teacherHint:'É um recipiente redondo com alça que serve para carregar água, leite ou ração para os animais!' },
-  { cat:'Farm Tools 🔨', emoji:'🏡', q:'"Cerca" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Cerca'},{lang:'en-US',text:'in English is'}],
-    speakText:'Fence', opts:['Fence','Gate','Wall','Barrier'], a:0,
-    explanation:'Fence quer dizer cerca.',
-    hint:'Divide os campos e segura os animais.',
-    teacherHint:'É a estrutura de madeira ou arame que fica em volta dos campos para os animais não fugirem!' },
-  { cat:'Farm Tools 🔨', emoji:'💦', q:'"Regador" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Regador'},{lang:'en-US',text:'in English is'}],
-    speakText:'Watering can', opts:['Watering can','Bucket','Hose','Sprinkler'], a:0,
-    explanation:'Watering can quer dizer regador.',
-    hint:'Serve para regar as plantas da horta.',
-    teacherHint:'É o recipiente com bico furado que você usa para molhar as plantas e a horta!' },
-  { cat:'Farm Tools 🔨', emoji:'🪓', q:'"Machado" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Machado'},{lang:'en-US',text:'in English is'}],
-    speakText:'Axe', opts:['Axe','Knife','Saw','Hammer'], a:0,
-    explanation:'Axe quer dizer machado.',
-    hint:'Serve para cortar lenha.',
-    teacherHint:'É a ferramenta com lâmina pesada usada para cortar madeira e lenha na fazenda!' },
+.db-sign {
+  background: #000;
+  color: #FFD700;
+  font-size: .55rem;
+  font-weight: 900;
+  padding: 2px 8px;
+  border-radius: 4px 4px 0 0;
+  letter-spacing: 1.5px;
+  align-self: stretch;
+  text-align: center;
+  font-family: sans-serif;
+}
+.db-body {
+  background: var(--bus-body);
+  border: 3px solid var(--bus-dark);
+  border-radius: 6px 6px 0 0;
+  width: 100%;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  padding: 5px 6px;
+  gap: 5px;
+  position: relative;
+}
+.db-stripe {
+  position: absolute;
+  left:0; right:0; top:50%;
+  height: 6px;
+  background: var(--bus-dark);
+  transform: translateY(-50%);
+}
+.db-windows { display:flex; gap:5px; z-index:1; }
+.db-win {
+  width: 22px; height: 20px;
+  background: #A8E6F0;
+  border: 2px solid var(--bus-dark);
+  border-radius: 3px;
+}
+.db-door {
+  width: 16px; height: 30px;
+  background: var(--bus-dark);
+  border-radius: 3px 3px 0 0;
+  margin-left: auto;
+  z-index:1;
+}
+.db-nose {
+  width: 26px; height: 100%;
+  background: #FFC107;
+  border: 3px solid var(--bus-dark);
+  border-left: none;
+  border-radius: 0 8px 8px 0;
+  display:flex; align-items:center; justify-content:center;
+  z-index:1;
+}
+.db-headlight {
+  width: 10px; height: 10px;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 6px 2px rgba(255,255,200,.8);
+}
+.db-axle {
+  background: #555;
+  border-radius: 0 0 4px 4px;
+  width: 100%;
+  height: 12px;
+  display:flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 0 12px;
+}
+.db-wheel {
+  width: 26px; height: 26px;
+  background: #222;
+  border: 4px solid #555;
+  border-radius: 50%;
+  margin-bottom: -7px;
+  animation: spinWheel .5s linear infinite;
+}
+@keyframes spinWheel { to { transform:rotate(360deg); } }
 
-  // ── LEGUMES E VERDURAS (12) ───────────────────────────────
-  { cat:'Vegetables 🥕', emoji:'🥬', q:'"Alface" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Alface'},{lang:'en-US',text:'in English is'}],
-    speakText:'Lettuce', opts:['Lettuce','Cabbage','Spinach','Kale'], a:0,
-    explanation:'Lettuce quer dizer alface.',
-    hint:'Vegetal verde folhudo da salada.',
-    teacherHint:'É a folha verde e crocante que a família põe na salada. Cresce facilmente na horta!' },
-  { cat:'Vegetables 🥕', emoji:'🥕', q:'"Cenoura" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Cenoura'},{lang:'en-US',text:'in English is'}],
-    speakText:'Carrot', opts:['Potato','Carrot','Turnip','Radish'], a:1,
-    explanation:'Carrot quer dizer cenoura.',
-    hint:'Laranja, cresce na terra, os coelhos adoram!',
-    teacherHint:'É um legume laranja que cresce debaixo da terra. Os coelhos adoram comer cenoura!' },
-  { cat:'Vegetables 🥕', emoji:'🍅', q:'"Tomate" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Tomate'},{lang:'en-US',text:'in English is'}],
-    speakText:'Tomato', opts:['Tomato','Pepper','Onion','Potato'], a:0,
-    explanation:'Tomato quer dizer tomate.',
-    hint:'Vermelho e suculento, vai na salada!',
-    teacherHint:'É o vegetal vermelho e redondo que fica no molho de macarrão e na salada!' },
-  { cat:'Vegetables 🥕', emoji:'🥔', q:'"Batata" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Batata'},{lang:'en-US',text:'in English is'}],
-    speakText:'Potato', opts:['Carrot','Radish','Potato','Turnip'], a:2,
-    explanation:'Potato quer dizer batata.',
-    hint:'Cresce debaixo da terra e vira fritas!',
-    teacherHint:'É o tubérculo que cresce no solo e que você pode comer frita, cozida ou assada!' },
-  { cat:'Vegetables 🥕', emoji:'🍠', q:'"Batata-doce" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Batata-doce'},{lang:'en-US',text:'in English is'}],
-    speakText:'Sweet potato', opts:['Sweet potato','Yam','Cassava','Potato'], a:0,
-    explanation:'Sweet potato quer dizer batata-doce.',
-    hint:'Como a batata, mas com polpa laranja e mais doce!',
-    teacherHint:'É um tubérculo parecido com a batata, mas com polpa laranja e sabor adocicado!' },
-  { cat:'Vegetables 🥕', emoji:'🧅', q:'"Cebola" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Cebola'},{lang:'en-US',text:'in English is'}],
-    speakText:'Onion', opts:['Garlic','Onion','Leek','Chive'], a:1,
-    explanation:'Onion quer dizer cebola.',
-    hint:'Faz a gente chorar quando cortamos!',
-    teacherHint:'É o vegetal redondo que quando você corta, faz a gente chorar de tanto cheirar!' },
-  { cat:'Vegetables 🥕', emoji:'🎃', q:'"Abóbora" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Abóbora'},{lang:'en-US',text:'in English is'}],
-    speakText:'Pumpkin', opts:['Pumpkin','Squash','Cucumber','Melon'], a:0,
-    explanation:'Pumpkin quer dizer abóbora.',
-    hint:'Grande, laranja e muito comum nas fazendas!',
-    teacherHint:'É um vegetal grande e redondo, geralmente laranja, muito comum nas fazendas do sul!' },
-  { cat:'Vegetables 🥕', emoji:'🥒', q:'"Pepino" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Pepino'},{lang:'en-US',text:'in English is'}],
-    speakText:'Cucumber', opts:['Zucchini','Cucumber','Eggplant','Celery'], a:1,
-    explanation:'Cucumber quer dizer pepino.',
-    hint:'Verde, comprido e refrescante na salada!',
-    teacherHint:'É um vegetal verde e comprido com casca dura. Muito refrescante na salada!' },
-  { cat:'Vegetables 🥕', emoji:'🌽', q:'"Milho" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Milho'},{lang:'en-US',text:'in English is'}],
-    speakText:'Corn', opts:['Corn','Wheat','Rice','Barley'], a:0,
-    explanation:'Corn quer dizer milho.',
-    hint:'Tem grãos amarelos na espiga!',
-    teacherHint:'É o cereal muito cultivado no sul do Brasil, em espiga com grãos amarelos e doces!' },
-  { cat:'Vegetables 🥕', emoji:'🧄', q:'"Alho" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Alho'},{lang:'en-US',text:'in English is'}],
-    speakText:'Garlic', opts:['Garlic','Onion','Ginger','Leek'], a:0,
-    explanation:'Garlic quer dizer alho.',
-    hint:'Tempero forte que vai em quase toda comida!',
-    teacherHint:'É o bulbo branco e muito cheiroso que dá sabor às comidas da roça. Quase toda receita usa!' },
-  { cat:'Vegetables 🥕', emoji:'🫑', q:'"Pimentão" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Pimentão'},{lang:'en-US',text:'in English is'}],
-    speakText:'Bell pepper', opts:['Bell pepper','Chili','Pepper','Paprika'], a:0,
-    explanation:'Bell pepper quer dizer pimentão.',
-    hint:'Pode ser verde, amarelo ou vermelho!',
-    teacherHint:'É um vegetal colorido que pode ser verde, amarelo ou vermelho. Vai bem na salada e na pizza!' },
-  { cat:'Vegetables 🥕', emoji:'🍆', q:'"Berinjela" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Berinjela'},{lang:'en-US',text:'in English is'}],
-    speakText:'Eggplant', opts:['Eggplant','Zucchini','Cucumber','Asparagus'], a:0,
-    explanation:'Eggplant quer dizer berinjela.',
-    hint:'Roxo, comprido e vai bem na frigideira!',
-    teacherHint:'É um vegetal roxo e comprido. Pode ser feito na frigideira com azeite. Cresce bem na horta!' },
+.db-exhaust {
+  width: 12px; height: 8px;
+  background: rgba(0,0,0,.25);
+  border-radius: 0 0 6px 6px;
+  margin-left: 8px;
+  align-self: flex-start;
+}
 
-  // ── COMIDA DA ROÇA (10) ───────────────────────────────────
-  { cat:'Food from the Farm 🥚', emoji:'🥚', q:'"Ovo" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Ovo'},{lang:'en-US',text:'in English is'}],
-    speakText:'Egg', opts:['Egg','Milk','Cheese','Butter'], a:0,
-    explanation:'Egg quer dizer ovo.',
-    hint:'A galinha bota e você come no café da manhã!',
-    teacherHint:'É o alimento que a galinha bota. Pode ser cozido, frito ou mexido no café da manhã!' },
-  { cat:'Food from the Farm 🥚', emoji:'🧀', q:'"Queijo" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Queijo'},{lang:'en-US',text:'in English is'}],
-    speakText:'Cheese', opts:['Butter','Cheese','Yogurt','Cream'], a:1,
-    explanation:'Cheese quer dizer queijo.',
-    hint:'Feito com leite de vaca, sólido e gostoso!',
-    teacherHint:'É feito do leite da vaca. Aqui no RS tem queijo colonial delicioso!' },
-  { cat:'Food from the Farm 🥚', emoji:'🍞', q:'"Pão" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Pão'},{lang:'en-US',text:'in English is'}],
-    speakText:'Bread', opts:['Bread','Cake','Cookie','Biscuit'], a:0,
-    explanation:'Bread quer dizer pão.',
-    hint:'Feito de farinha, vai bem no café da manhã!',
-    teacherHint:'É feito de farinha de trigo, fermento e sal. Vai muito bem com manteiga no café!' },
-  { cat:'Food from the Farm 🥚', emoji:'🫘', q:'"Feijão" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Feijão'},{lang:'en-US',text:'in English is'}],
-    speakText:'Beans', opts:['Rice','Beans','Corn','Wheat'], a:1,
-    explanation:'Beans quer dizer feijão.',
-    hint:'Combina com arroz no almoço da roça!',
-    teacherHint:'É o grão cultivado no Brasil inteiro. Arroz com feijão é o prato típico do almoço!' },
-  { cat:'Food from the Farm 🥚', emoji:'🍚', q:'"Arroz" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Arroz'},{lang:'en-US',text:'in English is'}],
-    speakText:'Rice', opts:['Corn','Wheat','Rice','Barley'], a:2,
-    explanation:'Rice quer dizer arroz.',
-    hint:'Grão branco que acompanha o feijão!',
-    teacherHint:'É o cereal branco do prato junto com o feijão. Muito cultivado no Rio Grande do Sul!' },
-  { cat:'Food from the Farm 🥚', emoji:'🧈', q:'"Manteiga" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Manteiga'},{lang:'en-US',text:'in English is'}],
-    speakText:'Butter', opts:['Butter','Margarine','Cream','Oil'], a:0,
-    explanation:'Butter quer dizer manteiga.',
-    hint:'Feita de leite, passa no pão!',
-    teacherHint:'É feita do creme do leite de vaca. Derrete quando esquenta e é deliciosa no pão quente!' },
-  { cat:'Food from the Farm 🥚', emoji:'🍯', q:'"Mel" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Mel'},{lang:'en-US',text:'in English is'}],
-    speakText:'Honey', opts:['Honey','Sugar','Syrup','Jam'], a:0,
-    explanation:'Honey quer dizer mel.',
-    hint:'Doce e produzido pelas abelhas!',
-    teacherHint:'É o alimento dourado e muito doce que as abelhas produzem nas colmeias!' },
-  { cat:'Food from the Farm 🥚', emoji:'🌾', q:'"Farinha" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Farinha'},{lang:'en-US',text:'in English is'}],
-    speakText:'Flour', opts:['Flour','Sugar','Salt','Starch'], a:0,
-    explanation:'Flour quer dizer farinha.',
-    hint:'Pó branco usado para fazer pão e bolo!',
-    teacherHint:'É o pó branco feito do trigo moído que serve para fazer pão, bolo e massa de macarrão!' },
-  { cat:'Food from the Farm 🥚', emoji:'🥛', q:'"Leite" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Leite'},{lang:'en-US',text:'in English is'}],
-    speakText:'Milk', opts:['Milk','Water','Juice','Tea'], a:0,
-    explanation:'Milk quer dizer leite.',
-    hint:'Branco, vem da vaca e faz bem à saúde!',
-    teacherHint:'É o líquido branco que vem da vaca. Servimos no café da manhã e é cheio de cálcio!' },
-  { cat:'Food from the Farm 🥚', emoji:'🫙', q:'"Geleia" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Geleia'},{lang:'en-US',text:'in English is'}],
-    speakText:'Jam', opts:['Jam','Jelly','Syrup','Cream'], a:0,
-    explanation:'Jam quer dizer geleia.',
-    hint:'Feita de frutas, passa no pão ou bolacha!',
-    teacherHint:'É feita cozinhando frutas com açúcar. Muito gostosa de uva ou morango daqui do RS!' },
+/* Formulário nome */
+.welcome-sub {
+  font-size: 1rem;
+  color: #555;
+  margin-bottom: 16px;
+}
+.name-wrap {
+  text-align: left;
+  margin-bottom: 16px;
+}
+.name-wrap label {
+  display: block;
+  font-size: .9rem;
+  font-weight: 700;
+  color: #1A3C72;
+  margin-bottom: 6px;
+}
+.name-wrap input {
+  width: 100%;
+  padding: 11px 16px;
+  font-size: 1.1rem;
+  font-family: inherit;
+  border: 3px solid #90CAF9;
+  border-radius: 14px;
+  outline: none;
+  transition: border-color .2s;
+  color: #222;
+}
+.name-wrap input:focus { border-color: #1A3C72; }
 
-  // ── NATUREZA (15) ─────────────────────────────────────────
-  { cat:'Nature 🌿', emoji:'🌳', q:'"Árvore" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Árvore'},{lang:'en-US',text:'in English is'}],
-    speakText:'Tree', opts:['Tree','Plant','Bush','Flower'], a:0,
-    explanation:'Tree quer dizer árvore.',
-    hint:'Alta, tem tronco, galhos e folhas!',
-    teacherHint:'É a planta grande com tronco grosso, galhos e muitas folhas que dá sombra no campo!' },
-  { cat:'Nature 🌿', emoji:'🏞️', q:'"Rio" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Rio'},{lang:'en-US',text:'in English is'}],
-    speakText:'River', opts:['Lake','River','Sea','Pond'], a:1,
-    explanation:'River quer dizer rio.',
-    hint:'A água corre entre as margens.',
-    teacherHint:'É um curso de água que corre pela terra. Aqui temos arroios e rios que passam pelas fazendas!' },
-  { cat:'Nature 🌿', emoji:'🌧️', q:'"Chuva" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Chuva'},{lang:'en-US',text:'in English is'}],
-    speakText:'Rain', opts:['Rain','Storm','Snow','Hail'], a:0,
-    explanation:'Rain quer dizer chuva.',
-    hint:'Água que cai do céu e molha a terra!',
-    teacherHint:'É a água que vem das nuvens e cai sobre a terra. Muito importante para as plantações!' },
-  { cat:'Nature 🌿', emoji:'🪨', q:'"Barro" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Barro'},{lang:'en-US',text:'in English is'}],
-    speakText:'Mud', opts:['Mud','Sand','Dust','Clay'], a:0,
-    explanation:'Mud quer dizer barro ou lama.',
-    hint:'A terra misturada com água depois da chuva!',
-    teacherHint:'É a mistura de terra com água que fica nos caminhos e campos depois que chove!' },
-  { cat:'Nature 🌿', emoji:'🌉', q:'"Ponte" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Ponte'},{lang:'en-US',text:'in English is'}],
-    speakText:'Bridge', opts:['Bridge','Tunnel','Road','Path'], a:0,
-    explanation:'Bridge quer dizer ponte.',
-    hint:'Passagem por cima de rios e arroios!',
-    teacherHint:'É a estrutura que atravessa por cima da água para você passar de um lado para o outro!' },
-  { cat:'Nature 🌿', emoji:'🌱', q:'"Semente" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Semente'},{lang:'en-US',text:'in English is'}],
-    speakText:'Seed', opts:['Seed','Sprout','Root','Leaf'], a:0,
-    explanation:'Seed quer dizer semente.',
-    hint:'A origem de todas as plantas!',
-    teacherHint:'É a parte da planta que, quando plantada na terra, começa a brotar e virar uma nova planta!' },
-  { cat:'Nature 🌿', emoji:'🌸', q:'"Flor" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Flor'},{lang:'en-US',text:'in English is'}],
-    speakText:'Flower', opts:['Flower','Leaf','Thorn','Bud'], a:0,
-    explanation:'Flower quer dizer flor.',
-    hint:'Colorida, perfumada e as abelhas adoram!',
-    teacherHint:'É a parte mais bonita da planta, colorida e perfumada, que as abelhas visitam para fazer mel!' },
-  { cat:'Nature 🌿', emoji:'💨', q:'"Vento" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Vento'},{lang:'en-US',text:'in English is'}],
-    speakText:'Wind', opts:['Wind','Breeze','Storm','Rain'], a:0,
-    explanation:'Wind quer dizer vento.',
-    hint:'O ar que move as folhas e as nuvens!',
-    teacherHint:'É o movimento do ar que balança as árvores, move as nuvens e empina a pipa no campo!' },
-  { cat:'Nature 🌿', emoji:'☁️', q:'"Nuvem" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Nuvem'},{lang:'en-US',text:'in English is'}],
-    speakText:'Cloud', opts:['Cloud','Fog','Smoke','Mist'], a:0,
-    explanation:'Cloud quer dizer nuvem.',
-    hint:'Branca no céu, carrega a chuva!',
-    teacherHint:'É a massa de água que flutua no céu. Quando ela fica escura e pesada, vem a chuva!' },
-  { cat:'Nature 🌿', emoji:'🌲', q:'"Floresta" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Floresta'},{lang:'en-US',text:'in English is'}],
-    speakText:'Forest', opts:['Forest','Park','Garden','Jungle'], a:0,
-    explanation:'Forest quer dizer floresta.',
-    hint:'Muitas árvores juntas formam uma floresta!',
-    teacherHint:'É um lugar com muitíssimas árvores e plantas. Também chamamos de mata aqui no sul!' },
-  { cat:'Nature 🌿', emoji:'🌾', q:'"Campo" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Campo'},{lang:'en-US',text:'in English is'}],
-    speakText:'Field', opts:['Field','Meadow','Pasture','Garden'], a:0,
-    explanation:'Field quer dizer campo.',
-    hint:'Área aberta onde se planta milho, soja e mais!',
-    teacherHint:'É a área grande e plana de terra onde os agricultores plantam e criam animais!' },
-  { cat:'Nature 🌿', emoji:'⛰️', q:'"Morro" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Morro'},{lang:'en-US',text:'in English is'}],
-    speakText:'Hill', opts:['Hill','Mountain','Valley','Cliff'], a:0,
-    explanation:'Hill quer dizer morro.',
-    hint:'Elevação de terra menor que uma montanha.',
-    teacherHint:'É uma elevação de terra que você vê bastante na zona rural do Rio Grande do Sul!' },
-  { cat:'Nature 🌿', emoji:'🦋', q:'"Borboleta" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Borboleta'},{lang:'en-US',text:'in English is'}],
-    speakText:'Butterfly', opts:['Butterfly','Moth','Dragonfly','Bee'], a:0,
-    explanation:'Butterfly quer dizer borboleta.',
-    hint:'Inseto colorido que voa de flor em flor!',
-    teacherHint:'É um inseto com asas coloridas e lindas. Começa como uma lagarta e se transforma!' },
-  { cat:'Nature 🌿', emoji:'🌊', q:'"Lago" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Lago'},{lang:'en-US',text:'in English is'}],
-    speakText:'Lake', opts:['Lake','River','Sea','Pond'], a:0,
-    explanation:'Lake quer dizer lago.',
-    hint:'Grande área de água parada rodeada de terra.',
-    teacherHint:'É uma área grande de água parada rodeada de terra. Diferente do rio que corre!' },
-  { cat:'Nature 🌿', emoji:'⚡', q:'"Relâmpago" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Relâmpago'},{lang:'en-US',text:'in English is'}],
-    speakText:'Lightning', opts:['Lightning','Thunder','Storm','Rain'], a:0,
-    explanation:'Lightning quer dizer relâmpago.',
-    hint:'A luz que risca o céu durante a tempestade!',
-    teacherHint:'É o raio de luz que aparece no céu durante as tempestades. Muito visto na roça à noite!' },
+.btn-play {
+  width: 100%;
+  padding: 15px;
+  background: linear-gradient(135deg, #FFD700, #FF8C00);
+  border: none;
+  border-radius: 50px;
+  font-size: 1.3rem;
+  font-family: inherit;
+  font-weight: 900;
+  color: #1A3C72;
+  cursor: pointer;
+  box-shadow: 0 5px 18px rgba(255,160,0,.5);
+  transition: transform .15s, box-shadow .15s;
+  letter-spacing: .5px;
+}
+.btn-play:hover  { transform:translateY(-2px); box-shadow:0 8px 24px rgba(255,160,0,.6); }
+.btn-play:active { transform:translateY(0); }
 
-  // ── VIDA RURAL (12) ───────────────────────────────────────
-  { cat:'Rural Life 🌾', emoji:'🏡', q:'"Sítio" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Sítio'},{lang:'en-US',text:'in English is'}],
-    speakText:'Farm', opts:['Farm','Ranch','Estate','Village'], a:0,
-    explanation:'Farm quer dizer fazenda ou sítio.',
-    hint:'Lugar no interior onde se planta e cria animais.',
-    teacherHint:'É o lugar no campo onde a família planta alimentos e cria animais. Vocês moram num lugar assim!' },
-  { cat:'Rural Life 🌾', emoji:'🌾', q:'"Colheita" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Colheita'},{lang:'en-US',text:'in English is'}],
-    speakText:'Harvest', opts:['Harvest','Planting','Pruning','Watering'], a:0,
-    explanation:'Harvest quer dizer colheita.',
-    hint:'Hora de recolher o que foi plantado!',
-    teacherHint:'É o momento de recolher tudo o que foi plantado, como o milho, a soja e o feijão!' },
-  { cat:'Rural Life 🌾', emoji:'🌱', q:'"Terra" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Terra'},{lang:'en-US',text:'in English is'}],
-    speakText:'Soil', opts:['Soil','Sand','Clay','Gravel'], a:0,
-    explanation:'Soil quer dizer terra.',
-    hint:'O chão escuro e fértil onde as plantas crescem!',
-    teacherHint:'É a camada de terra fértil onde plantamos as sementes. Uma boa terra é escura e úmida!' },
-  { cat:'Rural Life 🌾', emoji:'🏚️', q:'"Galpão" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Galpão'},{lang:'en-US',text:'in English is'}],
-    speakText:'Barn', opts:['Barn','Shed','Garage','Stable'], a:0,
-    explanation:'Barn quer dizer galpão ou celeiro.',
-    hint:'Grande construção da fazenda para guardar tudo!',
-    teacherHint:'É a grande construção da fazenda onde guardam o trator, as ferramentas e os animais!' },
-  { cat:'Rural Life 🌾', emoji:'🥬', q:'"Horta" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Horta'},{lang:'en-US',text:'in English is'}],
-    speakText:'Vegetable garden', opts:['Vegetable garden','Orchard','Park','Greenhouse'], a:0,
-    explanation:'Vegetable garden quer dizer horta.',
-    hint:'Onde a família planta verduras e legumes!',
-    teacherHint:'É o canteiro no quintal onde se planta cenoura, alface, tomate e outros legumes!' },
-  { cat:'Rural Life 🌾', emoji:'🧑‍🌾', q:'"Agricultor" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Agricultor'},{lang:'en-US',text:'in English is'}],
-    speakText:'Farmer', opts:['Farmer','Worker','Rancher','Gardener'], a:0,
-    explanation:'Farmer quer dizer agricultor ou fazendeiro.',
-    hint:'A pessoa que trabalha e cuida da fazenda!',
-    teacherHint:'É a pessoa que trabalha na lavoura, planta, colhe e cuida dos animais. Como muitos pais de vocês!' },
-  { cat:'Rural Life 🌾', emoji:'🚧', q:'"Porteira" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Porteira'},{lang:'en-US',text:'in English is'}],
-    speakText:'Gate', opts:['Gate','Door','Fence','Wall'], a:0,
-    explanation:'Gate quer dizer porteira ou portão.',
-    hint:'A porta de madeira na entrada do sítio!',
-    teacherHint:'É a porta grande de madeira ou ferro na entrada do sítio que você abre para entrar!' },
-  { cat:'Rural Life 🌾', emoji:'💧', q:'"Poço" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Poço'},{lang:'en-US',text:'in English is'}],
-    speakText:'Well', opts:['Well','Spring','Tank','Pond'], a:0,
-    explanation:'Well quer dizer poço.',
-    hint:'Buraco fundo no chão de onde se tira água.',
-    teacherHint:'É um buraco profundo no chão de onde os moradores do campo tiram água para beber e regar!' },
-  { cat:'Rural Life 🌾', emoji:'🌅', q:'"Pôr do sol" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Pôr do sol'},{lang:'en-US',text:'in English is'}],
-    speakText:'Sunset', opts:['Sunset','Sunrise','Dusk','Dawn'], a:0,
-    explanation:'Sunset quer dizer pôr do sol.',
-    hint:'Quando o sol vai embora no final da tarde.',
-    teacherHint:'É o momento lindo quando o sol se põe no horizonte. O céu fica todo laranja e rosa!' },
-  { cat:'Rural Life 🌾', emoji:'🛣️', q:'"Estrada" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Estrada'},{lang:'en-US',text:'in English is'}],
-    speakText:'Road', opts:['Road','Path','Trail','Highway'], a:0,
-    explanation:'Road quer dizer estrada.',
-    hint:'O caminho que o ônibus escolar usa todo dia!',
-    teacherHint:'É o caminho de terra ou asfalto que passa pela zona rural e leva até a escola!' },
-  { cat:'Rural Life 🌾', emoji:'🌻', q:'"Girassol" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Girassol'},{lang:'en-US',text:'in English is'}],
-    speakText:'Sunflower', opts:['Sunflower','Daisy','Rose','Tulip'], a:0,
-    explanation:'Sunflower quer dizer girassol.',
-    hint:'A flor que sempre olha para o sol!',
-    teacherHint:'É uma flor enorme e amarela que sempre vira a cabeça para o sol. Lindo nas lavouras!' },
-  { cat:'Rural Life 🌾', emoji:'🌈', q:'"Arco-íris" in English is…',
-    speechParts:[{lang:'pt-BR',text:'Arco-íris'},{lang:'en-US',text:'in English is'}],
-    speakText:'Rainbow', opts:['Rainbow','Clouds','Sunrise','Fog'], a:0,
-    explanation:'Rainbow quer dizer arco-íris.',
-    hint:'Aparece depois da chuva com várias cores!',
-    teacherHint:'É o fenômeno colorido que aparece no céu depois da chuva. Muito bonito de ver no campo!' },
-];
+.welcome-goal {
+  font-size: .82rem;
+  color: #777;
+  margin-top: 12px;
+}
 
-/* ── Amigos / paradas (11 personagens) ──────────────────── */
-const FRIENDS = [
-  { name:'Thomas',    initial:'T', color:'#1565C0', score:10,  phrase:"Let's go to school!"       },
-  { name:'Giovana',   initial:'G', color:'#AD1457', score:19,  phrase:"I am ready!"               },
-  { name:'Manuella',  initial:'M', color:'#6A1B9A', score:28,  phrase:"Good morning!"             },
-  { name:'Nicolas',   initial:'N', color:'#2E7D32', score:37,  phrase:"Let's learn English!"      },
-  { name:'Bianca',    initial:'B', color:'#BF360C', score:46,  phrase:"I like school!"            },
-  { name:'Ester',     initial:'E', color:'#00695C', score:55,  phrase:"Hello, friends!"           },
-  { name:'Weslay',    initial:'W', color:'#0277BD', score:64,  phrase:"The bus is fun!"           },
-  { name:'Gabriella', initial:'G', color:'#558B2F', score:73,  phrase:"I have my backpack!"       },
-  { name:'Amanda',    initial:'A', color:'#EF6C00', score:82,  phrase:"Time to learn!"            },
-  { name:'Bernardo',  initial:'B', color:'#283593', score:91,  phrase:"Let's play and learn!"     },
-  { name:'Pedro',     initial:'P', color:'#4E342E', score:100, phrase:"We are going to school!"   },
-];
+/* ────────────────────────────────────────────────────────
+   TELA DE JOGO
+   ──────────────────────────────────────────────────────── */
+#screen-game {
+  background: #1A3C72;
+  justify-content: flex-start;
+  min-height: 100vh;
+  max-width: 620px;
+  margin: 0 auto;
+  width: 100%;
+}
 
-/* ── Estado do jogo ──────────────────────────────────────── */
-const state = {
-  playerName:         '',
-  startedAt:          null,   // timestamp (Date.now()) ao iniciar partida
-  score:              0,
-  correct:            0,
-  wrong:              0,
-  total:              0,
-  helpFriend:         3,
-  helpHint:           2,
-  helpTeacher:        1,
-  boardedCount:       0,
-  currentQ:           null,
-  pool:               [],
-  answered:           false,
-  soundEnabled:       true,
-  audioCtx:           null,
-  boardedThisAnswer:  false,  // true quando um amigo embarcou nesta resposta
-  boardedFriend:      null,   // referência ao amigo que embarcou
-  lastSpeechParts:    null,   // para o botão 🔊 "Ouvir novamente"
-};
+/* ── Cabeçalho ── */
+#game-header {
+  width: 100%;
+  background: var(--header-bg);
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 3px solid #FFD700;
+  flex-shrink: 0;
+}
 
-const WRONG_PENALTY = 3;
+#score-area {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  background: rgba(255,255,255,.12);
+  border-radius: 12px;
+  padding: 5px 12px;
+  flex-shrink: 0;
+}
+.star-icon { font-size: 1.1rem; }
+#score-val {
+  font-size: 1.25rem;
+  font-weight: 900;
+  color: #FFD700;
+  min-width: 28px;
+  text-align: center;
+}
+.score-of { font-size: .85rem; color: rgba(255,255,255,.7); }
 
-/* ══════════════════════════════════════════════════════════
-   RANKING SEMANAL – localStorage
-   ──────────────────────────────────────────────────────────
-   Este ranking usa localStorage e funciona apenas neste
-   navegador. Para ranking real entre alunos jogando em casas
-   diferentes, será necessário usar banco online como
-   Supabase ou Firebase.
-   ──────────────────────────────────────────────────────────
-   Regra da semana: dom → sáb.
-   Cada domingo o weekId muda automaticamente; as partidas
-   antigas ficam salvas para o histórico de campeões.
-   ══════════════════════════════════════════════════════════ */
-const LS_KEY = 'eba_ranking_v1'; // English Bus Adventure – Ranking v1
+#progress-track {
+  flex: 1;
+  height: 20px;
+  background: rgba(255,255,255,.18);
+  border-radius: 10px;
+  position: relative;
+  overflow: visible;
+}
+#progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #FFD700, #FF8C00);
+  border-radius: 10px;
+  width: 0%;
+  transition: width .8s cubic-bezier(.4,0,.2,1);
+}
+#progress-bus {
+  position: absolute;
+  top: -6px;
+  font-size: 1.5rem;
+  transform: translateX(-50%);
+  left: 0%;
+  transition: left .8s cubic-bezier(.4,0,.2,1);
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,.4));
+  line-height: 1;
+}
 
-/* ── Supabase – configuração ───────────────────────────── */
-// Usa apenas a publishable key (anon/public). Sem service_role nem secret key.
-const SUPABASE_URL = 'https://jichmqxsqxdlphpntqbs.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_eZ8CSUI6zvxQJCSjLX9Uvg_2iH4SGxY';
-const SUPA_HDR     = {
-  'apikey':        SUPABASE_KEY,
-  'Authorization': `Bearer ${SUPABASE_KEY}`,
-  'Content-Type':  'application/json',
-  'Prefer':        'return=minimal',
-};
+.icon-btn {
+  background: rgba(255,255,255,.15);
+  border: 2px solid rgba(255,255,255,.3);
+  border-radius: 10px;
+  width: 38px; height: 38px;
+  font-size: 1.15rem;
+  cursor: pointer;
+  transition: background .2s;
+  flex-shrink: 0;
+}
+.icon-btn:hover { background:rgba(255,255,255,.28); }
 
-/**
- * Envia o resultado de uma partida para o Supabase via REST.
- * Retorna true se salvou com sucesso, false caso contrário.
- * Nunca lança exceção — erros são silenciados para não quebrar o jogo.
- */
-async function saveGameResultOnline(result) {
-  try {
-    console.log('Salvando pontuação online...');
-    const body = {
-      student_name:    result.studentName,
-      score:           result.score,
-      correct_answers: result.correctAnswers,
-      wrong_answers:   result.wrongAnswers,
-      duration_seconds:result.durationSeconds,
-      week_id:         result.weekId,
-      week_start:      result.weekStart,
-      week_end:        result.weekEnd,
-    };
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/game_scores`, {
-      method:  'POST',
-      headers: SUPA_HDR,
-      body:    JSON.stringify(body),
-    });
-    if (!res.ok) {
-      console.warn('Erro ao salvar pontuação online:', res.status, await res.text());
-      return false;
-    }
-    console.log('Pontuação online salva com sucesso');
-    return true;
-  } catch (err) {
-    console.warn('Erro ao salvar pontuação online:', err.message);
-    return false;
+/* ── Barra dos amigos ── */
+#friends-bar {
+  width: 100%;
+  background: #0F2655;
+  padding: 7px 10px;
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  flex-shrink: 0;
+  border-bottom: 2px solid rgba(255,255,255,.1);
+}
+#friends-bar::-webkit-scrollbar { height: 3px; }
+#friends-bar::-webkit-scrollbar-thumb { background: #FFD70044; border-radius: 2px; }
+
+.friend-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  opacity: .35;
+  transform: scale(.9);
+  transition: opacity .4s, transform .4s;
+}
+.friend-chip.boarded {
+  opacity: 1;
+  transform: scale(1);
+  animation: chipPop .5s ease;
+}
+@keyframes chipPop {
+  0%   { transform:scale(.5); }
+  70%  { transform:scale(1.2); }
+  100% { transform:scale(1); }
+}
+.friend-avatar {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  display: flex; align-items:center; justify-content:center;
+  font-size: 1rem;
+  font-weight: 900;
+  color: #fff;
+  border: 2px solid rgba(255,255,255,.3);
+  font-family: sans-serif;
+}
+.friend-chip.boarded .friend-avatar {
+  border-color: #FFD700;
+  box-shadow: 0 0 8px rgba(255,215,0,.6);
+}
+.friend-chip-name {
+  font-size: .5rem;
+  color: rgba(255,255,255,.7);
+  text-align: center;
+  line-height: 1.1;
+  max-width: 36px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Cena ── */
+#scene {
+  width: 100%;
+  height: 155px;
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+#scene-sky {
+  position: absolute;
+  inset: 0 0 40px 0;
+  background: linear-gradient(180deg, #5BC8F5 0%, #B8E4F7 100%);
+  overflow: hidden;
+}
+
+.gc1 { width:100px; height:32px; top:20%; left:8%;  animation:drift 20s linear infinite; }
+.gc1::before { width:44px; height:46px; top:-20px; left:14px; }
+.gc1::after  { width:36px; height:32px; top:-15px; left:46px; }
+.gc2 { width:70px;  height:22px; top:40%; left:60%; animation:drift 26s linear infinite 4s; }
+.gc2::before { width:32px; height:34px; top:-14px; left:10px; }
+.gc2::after  { width:26px; height:22px; top:-10px; left:32px; }
+
+#scene-hills {
+  position: absolute;
+  bottom: 40px; left:0; right:0;
+  height: 50px;
+  pointer-events:none;
+}
+.hill {
+  position: absolute;
+  border-radius: 50% 50% 0 0;
+}
+.hl1 { width:60%; height:50px; background:#3A8A1E; bottom:0; left:-5%; }
+.hl2 { width:55%; height:40px; background:#4CAF50; bottom:0; right:-2%; }
+
+#scene-trees {
+  position: absolute;
+  bottom: 40px; left:0; right:0;
+  height: 55px;
+  pointer-events:none;
+}
+.s-tree {
+  position: absolute;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.s-tree-top {
+  background: #2E7D32;
+  border-radius: 50%;
+  box-shadow: inset -4px -4px 0 rgba(0,0,0,.15);
+}
+.s-tree-trunk {
+  background: #5D4037;
+  border-radius: 2px;
+}
+
+#scene-road {
+  position: absolute;
+  bottom: 0; left:0; right:0;
+  height: 40px;
+  background: #777;
+}
+#scene-road::before {
+  content:'';
+  position:absolute;
+  top:0; left:0; right:0;
+  height: 4px;
+  background: #999;
+}
+.road-dash-strip {
+  position: absolute;
+  top: 50%; left:0; right:0;
+  height: 5px;
+  background: repeating-linear-gradient(90deg,
+    var(--road-line) 0, var(--road-line) 28px,
+    transparent 28px, transparent 56px);
+  transform: translateY(-50%);
+  animation: roadScroll .6s linear infinite;
+}
+@keyframes roadScroll {
+  from { background-position: 0 0; }
+  to   { background-position: -56px 0; }
+}
+
+/* Marcadores de parada */
+.stop-marker {
+  position: absolute;
+  bottom: 40px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  pointer-events: none;
+}
+.sm-house { font-size: 1.3rem; line-height:1; }
+.sm-flag  {
+  width: 2px; height: 10px;
+  background: #555;
+}
+.sm-name {
+  font-size: .48rem;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0,0,0,.7);
+  background: rgba(0,0,0,.4);
+  padding: 1px 3px;
+  border-radius: 3px;
+  white-space: nowrap;
+  margin-top: 1px;
+  max-width: 40px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.stop-marker.visited .sm-house { filter: brightness(1.4); }
+.stop-marker.current .sm-house {
+  animation: stopPulse 1s ease-in-out infinite;
+}
+@keyframes stopPulse {
+  0%,100% { transform:scale(1); }
+  50%      { transform:scale(1.3); }
+}
+
+/* Escola no final */
+#school-end {
+  position: absolute;
+  bottom: 36px;
+  right: 3%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.school-emoji { font-size: 2rem; line-height:1; filter: drop-shadow(0 2px 4px rgba(0,0,0,.3)); }
+.school-label {
+  font-size: .48rem;
+  font-weight:900;
+  color: #FFD700;
+  text-shadow: 0 1px 3px rgba(0,0,0,.8);
+  letter-spacing: 1px;
+  font-family: sans-serif;
+}
+
+/* Ônibus do jogo */
+#game-bus {
+  position: absolute;
+  bottom: 6px;
+  left: 2%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  transition: left 1s cubic-bezier(.4,0,.2,1);
+  filter: drop-shadow(2px 2px 5px rgba(0,0,0,.35));
+}
+.gb-sign {
+  background: #111;
+  color: #FFD700;
+  font-size: .42rem;
+  font-weight:900;
+  font-family:sans-serif;
+  letter-spacing: 1.5px;
+  padding: 1px 5px;
+  border-radius: 3px 3px 0 0;
+  align-self: stretch;
+  text-align: center;
+}
+.gb-body {
+  background: var(--bus-body);
+  border: 2.5px solid var(--bus-dark);
+  border-radius: 5px 5px 0 0;
+  width: 82px; height: 32px;
+  display: flex;
+  align-items: center;
+  padding: 3px 4px;
+  gap: 3px;
+  position: relative;
+}
+.gb-windows { display:flex; gap:3px; }
+.gb-win {
+  width: 14px; height: 14px;
+  background: #A8E6F0;
+  border: 1.5px solid var(--bus-dark);
+  border-radius: 2px;
+  position:relative;
+}
+.gb-win.w-face::after {
+  content:'😊'; font-size:.7rem;
+  position:absolute; top:-2px; left:-1px;
+}
+.gb-door {
+  width: 13px; height: 22px;
+  background: var(--bus-dark);
+  border-radius: 3px 3px 0 0;
+  margin-left: auto;
+}
+.gb-nose {
+  width: 20px; height: 100%;
+  background: #FFC107;
+  border: 2.5px solid var(--bus-dark);
+  border-left:none;
+  border-radius: 0 6px 6px 0;
+  display:flex; align-items:center; justify-content:center;
+}
+.gb-light {
+  width: 7px; height: 7px;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 5px 2px rgba(255,255,200,.9);
+}
+.gb-axle {
+  background: #555;
+  width: 100%;
+  height: 10px;
+  border-radius: 0 0 3px 3px;
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+  padding: 0 8px;
+}
+.gb-wheel {
+  width: 17px; height: 17px;
+  background: #222;
+  border: 3px solid #555;
+  border-radius: 50%;
+  margin-bottom: -5px;
+  animation: spinWheel .35s linear infinite;
+}
+
+/* Popup do amigo */
+#friend-popup {
+  position: absolute;
+  bottom: 42px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  pointer-events: none;
+  z-index: 20;
+  animation: popUpFriend .5s ease;
+}
+#friend-popup.hidden { display:none; }
+
+@keyframes popUpFriend {
+  from { transform:translateX(-50%) scale(.3); opacity:0; }
+  to   { transform:translateX(-50%) scale(1); opacity:1; }
+}
+#fp-bubble {
+  background: #fff;
+  border: 2px solid #FFD700;
+  border-radius: 50%;
+  width: 36px; height: 36px;
+  display:flex; align-items:center; justify-content:center;
+  font-size: 1.3rem;
+  box-shadow: 0 3px 8px rgba(0,0,0,.25);
+}
+#fp-avatar {
+  font-size: 1.4rem;
+  line-height:1;
+}
+#fp-name {
+  font-size: .6rem;
+  font-weight:900;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0,0,0,.8);
+  background: rgba(26,60,114,.85);
+  padding: 2px 7px;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+
+/* ── Card de pergunta ── */
+#question-card {
+  width: 100%;
+  background: var(--card-bg);
+  border-radius: 0;
+  padding: 14px 16px 10px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+#q-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+#q-cat-badge {
+  display: inline-block;
+  background: #1A3C72;
+  color: #FFD700;
+  font-size: .72rem;
+  font-weight:900;
+  padding: 4px 12px;
+  border-radius: 14px;
+  letter-spacing: .5px;
+  font-family: sans-serif;
+}
+#q-num {
+  font-size: .72rem;
+  color: #888;
+  font-family: sans-serif;
+}
+
+#q-emoji {
+  font-size: 2.2rem;
+  text-align:center;
+  line-height:1;
+}
+
+/* Linha da pergunta + botão falar */
+#q-text-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+#q-text-row #q-text { flex: 1; }
+
+/* feedback-msg com botão inline */
+#feedback-msg {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.speak-inline {
+  flex-shrink: 0;
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  min-height: 28px !important;
+  font-size: .78rem !important;
+}
+#q-text {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #1A3C72;
+  text-align: center;
+  line-height: 1.35;
+  min-height: 42px;
+}
+
+/* ── Botões de áudio (fala Web Speech API) ── */
+.speak-btn {
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  min-height: 38px;
+  border-radius: 50%;
+  border: 2px solid rgba(26,60,114,.2);
+  background: rgba(26,60,114,.08);
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: background .15s, transform .1s;
+  touch-action: manipulation;
+  line-height: 1;
+}
+.speak-btn:hover  { background: rgba(26,60,114,.18); }
+.speak-btn:active { transform: scale(.88); background: rgba(26,60,114,.28); }
+
+/* .speak-opt: mantido para uso nos balões de amigos (fh-bubble) */
+.speak-opt {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  min-width: 26px;
+  min-height: 26px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .78rem;
+  cursor: pointer;
+  transition: background .15s, transform .1s;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  line-height: 1;
+  border: none;
+}
+.speak-opt:hover  { background: rgba(255,255,255,.5); }
+.speak-opt:active { transform: scale(.85); background: rgba(255,255,255,.7); }
+
+#options-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+/* ── Alternativas: container ── */
+.answer-row {
+  border: 3px solid transparent;
+  border-radius: 16px;
+  overflow: hidden;
+  transition: transform .15s, box-shadow .15s;
+  display: flex;
+  align-items: stretch;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0,0,0,.3);
+}
+.answer-row:not(.correct):not(.wrong):not(.disabled):hover {
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 5px 14px rgba(0,0,0,.22);
+}
+.answer-row:not(.correct):not(.wrong):not(.disabled):active {
+  transform: scale(.97);
+}
+
+/* Cores de fundo (IDs ainda funcionam em divs) */
+#opt0 { background: var(--opt-a); }
+#opt1 { background: var(--opt-b); }
+#opt2 { background: var(--opt-c); color: #333; text-shadow: none; }
+#opt3 { background: var(--opt-d); }
+
+/* ── Botão de texto (responde) ── */
+.answer-main {
+  flex: 1;
+  padding: 14px 10px;
+  background: transparent;
+  border: none;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  color: inherit;
+  text-shadow: inherit;
+  line-height: 1.2;
+  text-align: center;
+  touch-action: manipulation;
+  min-height: 52px;
+}
+.answer-main:disabled { cursor: default; }
+
+/* ── Botão de áudio (só fala) ── */
+.answer-audio {
+  flex-shrink: 0;
+  width: 44px;
+  min-width: 44px;
+  background: rgba(255,255,255,.15);
+  border: none;
+  border-left: 1px solid rgba(255,255,255,.2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .95rem;
+  transition: background .15s, transform .1s;
+  touch-action: manipulation;
+  padding: 0;
+}
+.answer-audio:hover  { background: rgba(255,255,255,.32); }
+.answer-audio:active { background: rgba(255,255,255,.48); transform: scale(.88); }
+#opt2 .answer-audio {
+  background: rgba(0,0,0,.1);
+  border-left-color: rgba(0,0,0,.12);
+}
+#opt2 .answer-audio:hover { background: rgba(0,0,0,.2); }
+
+/* ── Estados de resultado ── */
+.answer-row.correct {
+  background: var(--correct) !important;
+  border-color: #00903D !important;
+  color: #fff !important;
+  text-shadow: none !important;
+  animation: correctPop .35s ease;
+}
+.answer-row.wrong {
+  background: var(--wrong) !important;
+  border-color: #B71C1C !important;
+  color: #fff !important;
+  text-shadow: none !important;
+  animation: wrongShake .4s ease;
+}
+.answer-row.eliminated {
+  background: #ccc !important;
+  color: #999 !important;
+  border-color: #bbb !important;
+  text-shadow: none !important;
+}
+.answer-row.correct .answer-main,
+.answer-row.wrong   .answer-main  { color: #fff !important; text-shadow: none !important; }
+
+@keyframes correctPop {
+  0%   { transform:scale(1); }
+  40%  { transform:scale(1.12); }
+  100% { transform:scale(1); }
+}
+@keyframes wrongShake {
+  0%,100% { transform:translateX(0); }
+  20%     { transform:translateX(-8px); }
+  40%     { transform:translateX(8px); }
+  60%     { transform:translateX(-5px); }
+  80%     { transform:translateX(5px); }
+}
+
+#feedback-msg {
+  font-size: .95rem;
+  font-weight: 700;
+  text-align: center;
+  min-height: 22px;
+  color: #555;
+}
+#feedback-msg.ok  { color: #00873A; }
+#feedback-msg.bad { color: #C62828; }
+
+/* ── Barra de ajudas ── */
+#help-bar {
+  width: 100%;
+  background: #0F2655;
+  padding: 8px 10px;
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.help-btn {
+  flex: 1;
+  max-width: 120px;
+  background: rgba(255,255,255,.1);
+  border: 2px solid rgba(255,255,255,.2);
+  border-radius: 14px;
+  padding: 7px 4px;
+  cursor: pointer;
+  color: #fff;
+  font-family: inherit;
+  font-size: .72rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  transition: background .2s, transform .15s;
+}
+.help-btn:hover:not(:disabled) {
+  background: rgba(255,255,255,.2);
+  transform: translateY(-2px);
+}
+.help-btn:disabled { opacity:.35; cursor:not-allowed; }
+.hb-icon  { font-size: 1.3rem; line-height:1; }
+.hb-label { font-size: .65rem; color:rgba(255,255,255,.8); }
+.hb-count {
+  background: #FFD700;
+  color: #1A3C72;
+  font-size: .6rem;
+  font-weight:900;
+  font-family:sans-serif;
+  padding: 1px 6px;
+  border-radius: 10px;
+}
+
+/* ────────────────────────────────────────────────────────
+   MODAL – AMIGO EMBARCOU
+   ──────────────────────────────────────────────────────── */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 300;
+  animation: fadeIn .25s ease;
+}
+.modal.hidden { display:none; }
+
+.modal-box {
+  background: #fff;
+  border-radius: 28px;
+  padding: 32px 28px;
+  max-width: 340px;
+  width: 88%;
+  text-align: center;
+  box-shadow: 0 10px 40px rgba(0,0,0,.35);
+}
+.boarding-box {
+  border: 5px solid #FFD700;
+}
+.mb-avatar {
+  font-size: 4rem;
+  margin-bottom: 8px;
+  animation: popUpFriend .4s ease;
+}
+.modal-box h2 {
+  font-size: 1.5rem;
+  color: #1A3C72;
+  margin-bottom: 6px;
+}
+.modal-box p {
+  font-size: 1rem;
+  color: #555;
+  margin-bottom: 20px;
+  line-height: 1.4;
+}
+.btn-continue {
+  background: linear-gradient(135deg, #FFD700, #FF8C00);
+  border: none;
+  border-radius: 50px;
+  padding: 12px 36px;
+  font-family: inherit;
+  font-size: 1.05rem;
+  font-weight: 900;
+  color: #1A3C72;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(255,160,0,.45);
+  transition: transform .15s;
+}
+.btn-continue:hover  { transform:translateY(-2px); }
+.btn-continue:active { transform:scale(.97); }
+
+/* ────────────────────────────────────────────────────────
+   TELA DE VITÓRIA
+   ──────────────────────────────────────────────────────── */
+#screen-victory {
+  background: linear-gradient(135deg, #1A3C72 0%, #0D47A1 100%);
+  align-items: center;
+  padding: 24px 16px 32px;
+  gap: 16px;
+  overflow-y: auto;
+}
+
+#confetti-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 400;
+  overflow: hidden;
+}
+.conf-piece {
+  position: absolute;
+  top: -20px;
+  border-radius: 3px;
+  animation: fallConf linear forwards;
+}
+@keyframes fallConf {
+  to { transform: translateY(110vh) rotate(720deg); opacity:0; }
+}
+
+#victory-header { text-align:center; color:#fff; }
+.v-bus-row { font-size: 3rem; margin-bottom: 6px; animation:busBounce .7s ease-in-out infinite; }
+.v-title {
+  font-size: 2.4rem;
+  font-weight:900;
+  text-shadow: 2px 2px 0 rgba(0,0,0,.25);
+  color: #FFD700;
+}
+.v-sub { font-size: 1rem; color:rgba(255,255,255,.85); margin-top:4px; }
+
+/* Certificado */
+#certificate {
+  width: 100%;
+  max-width: 500px;
+}
+.cert-border-outer {
+  background: linear-gradient(135deg, #FFD700, #FF8C00, #FFD700, #FF8C00);
+  border-radius: 20px;
+  padding: 5px;
+  box-shadow: 0 8px 30px rgba(0,0,0,.4);
+}
+.cert-border-inner {
+  background: #FFFDE7;
+  border-radius: 16px;
+  padding: 24px 22px 20px;
+  text-align: center;
+  border: 3px dashed #FFD700;
+}
+
+.cert-school-name {
+  font-size: .75rem;
+  font-weight:900;
+  color: #1A3C72;
+  font-family:sans-serif;
+  margin-bottom: 8px;
+  line-height:1.4;
+}
+.cert-school-name small { font-size:.65rem; color:#555; font-weight:400; }
+.cert-trophy { font-size: 2.8rem; margin-bottom:4px; }
+.cert-title {
+  font-size: 1.5rem;
+  font-weight:900;
+  color: #1A3C72;
+  margin-bottom: 2px;
+}
+.cert-sub {
+  font-size: .8rem;
+  color: #888;
+  font-family:sans-serif;
+  margin-bottom: 10px;
+}
+.cert-rule {
+  color: #FFD700;
+  font-size: .85rem;
+  letter-spacing: 3px;
+  margin: 8px 0;
+}
+.cert-body-text {
+  font-size: .85rem;
+  color: #555;
+  margin-bottom: 6px;
+  line-height:1.5;
+  font-family:sans-serif;
+}
+.cert-student-name {
+  font-size: 1.8rem;
+  font-weight:900;
+  color: #1A3C72;
+  border-bottom: 3px solid #FFD700;
+  padding-bottom: 4px;
+  margin: 6px 24px 10px;
+  min-height: 40px;
+}
+.cert-stats {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin: 12px 0 8px;
+}
+.cs-box {
+  background: #fff;
+  border: 2px solid #FFD700;
+  border-radius: 12px;
+  padding: 8px 16px;
+  min-width: 70px;
+}
+.cs-num {
+  display:block;
+  font-size: 1.4rem;
+  font-weight:900;
+  color: #1A3C72;
+}
+.cs-lbl {
+  display:block;
+  font-size: .58rem;
+  color: #888;
+  font-family:sans-serif;
+  text-transform:uppercase;
+  letter-spacing:.5px;
+}
+.cert-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-top: 10px;
+  padding-top: 6px;
+}
+.cert-sig { text-align:center; font-size:.7rem; color:#666; font-family:sans-serif; }
+.cert-sig-line { width:120px; border-bottom:2px solid #999; margin-bottom:4px; }
+.cert-date { font-size:.7rem; color:#888; font-family:sans-serif; text-align:right; }
+
+/* Botões da vitória */
+.victory-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 380px;
+}
+.btn-print, .btn-replay {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 50px;
+  font-family: inherit;
+  font-size: 1.05rem;
+  font-weight:900;
+  cursor: pointer;
+  transition: transform .15s, box-shadow .15s;
+}
+.btn-print {
+  background: linear-gradient(135deg, #FFD700, #FF8C00);
+  color: #1A3C72;
+  box-shadow: 0 4px 16px rgba(255,160,0,.4);
+}
+.btn-replay {
+  background: rgba(255,255,255,.15);
+  color: #fff;
+  border: 2px solid rgba(255,255,255,.4);
+}
+.btn-print:hover  { transform:translateY(-2px); }
+.btn-replay:hover { background:rgba(255,255,255,.25); }
+
+/* ────────────────────────────────────────────────────────
+   ANIMAÇÕES GERAIS
+   ──────────────────────────────────────────────────────── */
+@keyframes flashCorrect {
+  0%,100% { background:var(--correct); }
+  50%     { background:#A5D6A7; }
+}
+@keyframes fadeInUp {
+  from { opacity:0; transform:translateY(14px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+.pulse {
+  animation: pulse .6s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%,100% { transform:scale(1); }
+  50%      { transform:scale(1.06); }
+}
+
+/* ────────────────────────────────────────────────────────
+   RESPONSIVO
+   ──────────────────────────────────────────────────────── */
+@media (max-width: 420px) {
+  .game-title .title-english { font-size:2rem; }
+  .game-title .title-bus     { font-size:1.7rem; }
+  #q-text { font-size:1.05rem; }
+  .opt    { font-size:.9rem; padding:11px 6px; }
+}
+@media (min-height: 700px) {
+  #scene { height: 165px; }
+  #question-card { padding:16px 18px 12px; }
+}
+
+/* ────────────────────────────────────────────────────────
+   PAINEL DE RESULTADO DA RESPOSTA
+   ──────────────────────────────────────────────────────── */
+
+/* question-card precisa ser scrollable quando conteúdo cresce */
+#question-card {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Estado oculto */
+#answer-result.ar-hidden {
+  display: none;
+}
+
+/* Painel visível */
+#answer-result {
+  border-radius: 16px;
+  padding: 16px 14px 14px;
+  margin-top: 10px;
+  animation: slideInResult .3s cubic-bezier(.4,0,.2,1);
+}
+#answer-result.result-correct {
+  background: linear-gradient(135deg, #E8F5E9 0%, #C8F0D0 100%);
+  border: 2.5px solid #43A047;
+}
+#answer-result.result-wrong {
+  background: linear-gradient(135deg, #FFF3F3 0%, #FFD7D7 100%);
+  border: 2.5px solid #EF5350;
+}
+
+@keyframes slideInResult {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Linha ícone + textos */
+.ar-icon-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.ar-icon {
+  font-size: 2.6rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.ar-text-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ar-title {
+  font-size: 1.05rem;
+  font-weight: 900;
+  color: #1A3C72;
+  line-height: 1.2;
+}
+.ar-points {
+  font-size: 1.35rem;
+  font-weight: 900;
+}
+.result-correct .ar-points { color: #2E7D32; }
+.result-wrong   .ar-points { color: #C62828; }
+
+/* Info do amigo (só aparece quando embarca) */
+.ar-friend {
+  font-size: .92rem;
+  font-weight: 800;
+  color: #1A3C72;
+  background: rgba(255,255,255,.65);
+  border-radius: 10px;
+  padding: 5px 10px;
+  margin-bottom: 3px;
+  line-height: 1.3;
+}
+.ar-friend:empty { display: none; }
+
+.ar-friend-phrase {
+  font-size: .88rem;
+  color: #5D4037;
+  font-style: italic;
+  background: rgba(255,215,0,.2);
+  border-radius: 10px;
+  padding: 5px 10px;
+  margin-bottom: 5px;
+  line-height: 1.3;
+}
+.ar-friend-phrase:empty { display: none; }
+
+/* Botão Ouvir novamente */
+.ar-repeat-btn {
+  width: auto !important;
+  border-radius: 20px !important;
+  padding: 8px 16px !important;
+  font-size: .88rem !important;
+  font-weight: 700;
+  color: #1A3C72 !important;
+  border: 2px solid rgba(26,60,114,.25) !important;
+  background: rgba(26,60,114,.08) !important;
+  margin-bottom: 10px;
+  gap: 5px;
+}
+.ar-repeat-btn:hover  { background: rgba(26,60,114,.16) !important; }
+.ar-repeat-btn:active { transform: scale(.95); }
+
+/* Resposta certa (só aparece no erro) */
+.ar-correct {
+  font-size: .92rem;
+  font-weight: 800;
+  color: #1A3C72;
+  background: rgba(255,255,255,.65);
+  border-radius: 10px;
+  padding: 6px 10px;
+  margin-bottom: 6px;
+  line-height: 1.3;
+}
+.ar-correct:empty { display: none; }
+
+/* Explicação / dica da palavra */
+.ar-explanation {
+  font-size: .85rem;
+  color: #5D4037;
+  font-style: italic;
+  background: rgba(255,255,255,.55);
+  border-radius: 10px;
+  padding: 6px 10px;
+  margin-bottom: 12px;
+  line-height: 1.4;
+  font-family: sans-serif;
+}
+.ar-explanation:empty { display: none; }
+
+/* Botão Próxima Parada */
+.btn-next-stop {
+  display: block;
+  width: 100%;
+  padding: 15px 10px;
+  background: linear-gradient(135deg, #FFD700 0%, #FF8C00 100%);
+  border: none;
+  border-radius: 50px;
+  font-family: inherit;
+  font-size: 1.15rem;
+  font-weight: 900;
+  color: #1A3C72;
+  cursor: pointer;
+  box-shadow: 0 5px 18px rgba(255,160,0,.5);
+  transition: transform .15s, box-shadow .15s;
+  min-height: 56px;
+  touch-action: manipulation;
+  letter-spacing: .3px;
+  text-align: center;
+}
+.btn-next-stop:hover  {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(255,160,0,.6);
+}
+.btn-next-stop:active { transform: scale(.97); }
+
+/* Feedback de dica (help buttons) – fica entre q-text e options */
+#feedback-msg {
+  font-size: .9rem;
+  font-weight: 700;
+  color: #555;
+  padding: 5px 8px;
+  border-radius: 10px;
+  min-height: 0;
+  line-height: 1.4;
+  transition: all .2s;
+  margin-bottom: 4px;
+}
+#feedback-msg:empty { display: none; }
+#feedback-msg.teacher-hint {
+  color: #5D4037;
+  background: rgba(255,193,7,.15);
+  border: 1.5px solid rgba(255,193,7,.45);
+  font-style: italic;
+}
+/* Remove estilos .ok e .bad – agora são do painel de resultado */
+
+/* ────────────────────────────────────────────────────────
+   MODAL – AJUDA DOS AMIGOS (balões de fala)
+   ──────────────────────────────────────────────────────── */
+.friend-hint-box {
+  border: 5px solid #3DCDC7;
+  max-width: 420px;
+}
+.mfh-bus-icon {
+  font-size: 2.2rem;
+  margin-bottom: 2px;
+  animation: busBounce .7s ease-in-out infinite;
+}
+.friend-hint-box h3 {
+  font-size: 1.25rem;
+  color: #1A3C72;
+  margin-bottom: 4px;
+}
+.mfh-sub {
+  font-size: .85rem;
+  color: #777;
+  margin-bottom: 18px;
+  font-family: sans-serif;
+}
+#friend-hints-row {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.friend-hint {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  max-width: 110px;
+}
+/* Botão "Ouvir todos" no modal de amigos */
+.speak-all-btn {
+  width: auto !important;
+  border-radius: 20px !important;
+  padding: 8px 18px !important;
+  font-size: .88rem !important;
+  font-weight: 700;
+  color: #1A3C72 !important;
+  border: 2px solid rgba(26,60,114,.25) !important;
+  background: rgba(26,60,114,.08) !important;
+  margin-bottom: 12px;
+  gap: 5px;
+  display: inline-flex !important;
+}
+.speak-all-btn:hover  { background: rgba(26,60,114,.16) !important; }
+
+/* 🔊 dentro do balão de palpite */
+.fh-speak {
+  width: 26px !important;
+  height: 26px !important;
+  min-width: 26px !important;
+  min-height: 26px !important;
+  font-size: .78rem !important;
+  background: rgba(26,60,114,.12) !important;
+  border: none !important;
+}
+.fh-speak:hover { background: rgba(26,60,114,.25) !important; }
+
+/* balão de fala */
+.fh-bubble {
+  background: #EEF6FF;
+  border: 2.5px solid #90CAF9;
+  border-radius: 14px 14px 14px 4px;
+  padding: 8px 10px;
+  font-size: .95rem;
+  font-weight: 800;
+  color: #1A3C72;
+  text-align: center;
+  position: relative;
+  animation: bubblePop .4s ease;
+  min-width: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+.fh-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -9px;
+  left: 12px;
+  border-width: 9px 7px 0;
+  border-style: solid;
+  border-color: #90CAF9 transparent transparent;
+}
+.fh-bubble::before {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: 14px;
+  border-width: 7px 5px 0;
+  border-style: solid;
+  border-color: #EEF6FF transparent transparent;
+  z-index: 1;
+}
+@keyframes bubblePop {
+  0%   { transform:scale(.4) translateY(10px); opacity:0; }
+  70%  { transform:scale(1.08); opacity:1; }
+  100% { transform:scale(1) translateY(0); }
+}
+.fh-avatar {
+  width: 42px; height: 42px;
+  border-radius: 50%;
+  display: flex; align-items:center; justify-content:center;
+  font-size: 1.1rem;
+  font-weight: 900;
+  color: #fff;
+  border: 3px solid rgba(255,255,255,.5);
+  font-family: sans-serif;
+  box-shadow: 0 2px 8px rgba(0,0,0,.2);
+}
+.fh-name {
+  font-size: .68rem;
+  color: #555;
+  text-align: center;
+  font-family: sans-serif;
+  font-weight: 600;
+}
+
+/* (feedback-msg e card flash movidos para cima, junto do painel de resultado) */
+
+/* Delta de pontuação flutuante */
+#score-delta {
+  position: fixed;
+  top: 48px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 1.6rem;
+  font-weight: 900;
+  pointer-events: none;
+  z-index: 500;
+  opacity: 0;
+}
+.delta-up   { color: #00C853; animation: deltaFloat 1.1s ease forwards; }
+.delta-down { color: #E53935; animation: deltaFloat 1.1s ease forwards; }
+@keyframes deltaFloat {
+  0%   { opacity:1; transform:translateX(-50%) translateY(0); }
+  80%  { opacity:.8; }
+  100% { opacity:0; transform:translateX(-50%) translateY(-44px); }
+}
+
+/* ────────────────────────────────────────────────────────
+   RESPONSIVIDADE MOBILE MELHORADA
+   ──────────────────────────────────────────────────────── */
+
+/* Botões de opção – alvo de toque mínimo 52px */
+.opt {
+  min-height: 52px;
+  touch-action: manipulation;
+}
+
+/* Help bar – botões maiores no mobile */
+.help-btn {
+  min-height: 52px;
+  touch-action: manipulation;
+}
+
+/* Botões de ação */
+.btn-play, .btn-continue, .btn-print, .btn-replay {
+  min-height: 52px;
+  touch-action: manipulation;
+}
+
+@media (max-width: 480px) {
+  /* Boas vindas */
+  .title-english  { font-size: 2rem; }
+  .title-bus      { font-size: 1.75rem; }
+  .welcome-card   { padding: 22px 18px 24px; }
+  .deco-bus       { width: 160px; }
+
+  /* Header */
+  #game-header    { padding: 8px 10px; gap: 7px; }
+  #score-area     { padding: 4px 9px; }
+  #score-val      { font-size: 1.1rem; }
+
+  /* Cena */
+  #scene          { height: 125px; }
+  .gb-sign        { font-size: .36rem; }
+  .gb-body        { width: 68px; height: 28px; }
+  .gb-win         { width: 12px; height: 12px; }
+
+  /* Card de perguntas */
+  #question-card  { padding: 10px 12px 8px; gap: 7px; }
+  #q-text         { font-size: 1.05rem; min-height: 34px; }
+  #q-emoji        { font-size: 1.8rem; }
+  #options-grid   { gap: 8px; }
+  .opt            { font-size: .95rem; padding: 11px 6px; min-height: 52px; }
+
+  /* Painel de resultado */
+  #answer-result  { padding: 12px 11px 11px; margin-top: 8px; }
+  .ar-icon        { font-size: 2.1rem; }
+  .ar-title       { font-size: .98rem; }
+  .ar-points      { font-size: 1.2rem; }
+  .ar-correct,
+  .ar-explanation { font-size: .82rem; padding: 5px 9px; margin-bottom: 5px; }
+  .btn-next-stop  { font-size: 1.05rem; padding: 13px 10px; min-height: 52px; }
+
+  /* Help bar */
+  #help-bar       { padding: 6px 8px; gap: 6px; }
+  .hb-icon        { font-size: 1.1rem; }
+  .hb-label       { font-size: .6rem; }
+
+  /* Feedback dica */
+  #feedback-msg   { font-size: .85rem; }
+
+  /* Certificado */
+  .cert-title     { font-size: 1.25rem; }
+  .cert-student-name { font-size: 1.5rem; margin: 4px 10px 8px; }
+  .cs-num         { font-size: 1.2rem; }
+}
+
+@media (max-width: 380px) {
+  .opt            { font-size: .85rem; padding: 10px 4px; }
+  #options-grid   { grid-template-columns: 1fr 1fr; }
+  .ar-title       { font-size: .9rem; }
+  .btn-next-stop  { font-size: .95rem; }
+}
+
+/* Telas muito baixas (ex: iPhone SE landscape) */
+@media (max-height: 600px) {
+  #scene          { height: 100px; }
+  #friends-bar    { padding: 4px 8px; }
+  .friend-avatar  { width: 28px; height: 28px; font-size: .8rem; }
+  #question-card  { padding: 7px 11px 6px; gap: 5px; }
+  #q-emoji        { display: none; }
+  #q-text         { font-size: .92rem; }
+  .opt            { padding: 9px 6px; min-height: 46px; font-size: .86rem; }
+  .ar-icon        { font-size: 1.7rem; }
+  .ar-title       { font-size: .9rem; }
+  .ar-points      { font-size: 1.05rem; }
+  .btn-next-stop  { padding: 11px; min-height: 48px; font-size: 1rem; }
+}
+
+/* ────────────────────────────────────────────────────────
+   IMPRESSÃO – só certificado
+   ──────────────────────────────────────────────────────── */
+@media print {
+  /* ── Impressão do certificado individual (padrão) ── */
+  body:not(.printing-champion) > *:not(#screen-victory) { display:none !important; }
+  body:not(.printing-champion) #screen-victory {
+    display:block !important;
+    background:#fff !important;
+    padding:0 !important;
+  }
+  body:not(.printing-champion) #confetti-layer,
+  body:not(.printing-champion) #victory-header,
+  body:not(.printing-champion) .victory-actions { display:none !important; }
+  body:not(.printing-champion) #certificate { max-width:100%; }
+  body:not(.printing-champion) .cert-border-outer { box-shadow:none; }
+  body:not(.printing-champion) .cert-border-inner { border-color:#ddd; }
+
+  /* ── Impressão do certificado do campeão ── */
+  body.printing-champion > *:not(#modal-champ-cert) { display:none !important; }
+  body.printing-champion #modal-champ-cert {
+    display:block !important;
+    position:static !important;
+    background:transparent !important;
+    overflow:visible !important;
+  }
+  body.printing-champion .champ-cert-modal-box {
+    max-height:none !important;
+    box-shadow:none !important;
+    overflow:visible !important;
+  }
+  body.printing-champion .champ-cert-actions { display:none !important; }
+  body.printing-champion #champ-cert-content {
+    border-color:#ccc !important;
+    box-shadow:none !important;
   }
 }
 
-/**
- * Busca todas as partidas da semana atual no Supabase.
- * Retorna array de registros ou null se a requisição falhar.
- */
-async function fetchCurrentWeekScoresOnline() {
-  const weekId = getWeekId(Date.now());
-  try {
-    console.log('Buscando ranking online da semana...');
-    const url = `${SUPABASE_URL}/rest/v1/game_scores`
-      + `?week_id=eq.${encodeURIComponent(weekId)}`
-      + `&select=student_name,score,correct_answers,wrong_answers,`
-      + `duration_seconds,week_id,week_start,week_end,created_at`;
-    const res = await fetch(url, {
-      headers: {
-        'apikey':        SUPABASE_KEY,
-        'Authorization': `Bearer ${SUPABASE_KEY}`,
-      },
-    });
-    if (!res.ok) {
-      console.warn('Erro ao buscar ranking online:', res.status, await res.text());
-      return null;
-    }
-    const data = await res.json();
-    console.log('Ranking online carregado:', data.length, 'partidas');
-    return data;
-  } catch (err) {
-    console.warn('Erro ao buscar ranking online:', err.message);
-    return null;
-  }
+/* ══════════════════════════════════════════════════════
+   RANKING LOCAL – novos estilos
+   ══════════════════════════════════════════════════════ */
+
+/* ── Seletor de alunos ────────────────────────────────── */
+.student-selector {
+  margin: 12px 0 6px;
+}
+.selector-label {
+  font-size: .92rem;
+  color: #555;
+  font-weight: 600;
+  margin-bottom: 10px;
+  text-align: center;
+}
+.student-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  justify-content: center;
+}
+.student-btn {
+  padding: 8px 16px;
+  border: 3px solid #dde;
+  border-radius: 24px;
+  background: #f7f7ff;
+  font-family: inherit;
+  font-size: .88rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform .15s, box-shadow .15s, border-color .15s, background .15s;
+  color: #444;
+  touch-action: manipulation;
+}
+.student-btn:hover {
+  border-color: var(--primary);
+  background: #e8eeff;
+  transform: translateY(-2px);
+  box-shadow: 0 3px 8px rgba(26,60,114,.18);
+}
+.student-btn.selected {
+  border-color: var(--sc, var(--primary));
+  background:   var(--sc, var(--primary));
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,.28);
+}
+/* animação de erro (nenhum selecionado) */
+.student-grid.shake { animation: wrongShake .4s ease; }
+
+/* ── Welcome actions ──────────────────────────────────── */
+.welcome-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  margin: 12px 0;
+}
+.welcome-actions .btn-play {
+  flex: 1 1 140px;
+  max-width: 180px;
+  width: auto;
+  margin: 0;
+}
+.welcome-actions .btn-play:disabled {
+  opacity: .42;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
 }
 
-/**
- * Busca partidas de semanas ANTERIORES no Supabase para o histórico.
- * Retorna array ou null se falhar.
- */
-async function fetchPastWeeksOnline() {
-  const curWeekId = getWeekId(Date.now());
-  try {
-    const url = `${SUPABASE_URL}/rest/v1/game_scores`
-      + `?week_id=neq.${encodeURIComponent(curWeekId)}`
-      + `&select=student_name,score,correct_answers,wrong_answers,`
-      + `week_id,week_start,week_end&order=week_id.desc`;
-    const res = await fetch(url, {
-      headers: {
-        'apikey':        SUPABASE_KEY,
-        'Authorization': `Bearer ${SUPABASE_KEY}`,
-      },
-    });
-    if (!res.ok) return null;
-    return await res.json();
-  } catch { return null; }
+/* ── Botão "Ver Ranking" ──────────────────────────────── */
+.btn-ranking {
+  flex: 1 1 140px;
+  max-width: 180px;
+  padding: 16px 10px;
+  background: linear-gradient(135deg, #F59E0B, #D97706);
+  border: none;
+  border-radius: 50px;
+  color: #fff;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  transition: transform .15s, box-shadow .15s;
+  box-shadow: 0 4px 12px rgba(245,158,11,.4);
+  touch-action: manipulation;
+}
+.btn-ranking:hover  { transform: translateY(-3px) scale(1.03); box-shadow: 0 6px 16px rgba(245,158,11,.5); }
+.btn-ranking:active { transform: scale(.96); }
+.victory-rank-btn   { max-width: 200px; font-size: .95rem; }
+
+/* ── Pódio da turma (welcome) ─────────────────────────── */
+.welcome-podium-wrap {
+  margin: 6px 0 10px;
+}
+.podium-label {
+  font-size: .83rem;
+  font-weight: 700;
+  color: #777;
+  margin: 0 0 2px;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+.podium-period {
+  font-size: .75rem;
+  color: #999;
+  text-align: center;
+  margin: 0 0 8px;
+}
+.podium-empty {
+  font-size: .82rem;
+  color: #aaa;
+  text-align: center;
+  line-height: 1.5;
+  margin: 4px 0 0;
+}
+.podium-row {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 6px;
+}
+.podium-place {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  border-radius: 12px 12px 6px 6px;
+  padding: 8px 10px 6px;
+  min-width: 76px;
+  text-align: center;
+  box-shadow: 0 3px 10px rgba(0,0,0,.15);
+}
+.p-gold   { background: linear-gradient(170deg, #FFD700, #FFA500); }
+.p-silver { background: linear-gradient(170deg, #D8D8D8, #9E9E9E); }
+.p-bronze { background: linear-gradient(170deg, #CD8D45, #8B4513); }
+.p-medal  { font-size: 1.5rem; line-height: 1; }
+.p-name   { font-size: .8rem; font-weight: 800; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.4); margin-top: 4px; }
+.p-score  { font-size: .76rem; font-weight: 700; color: rgba(255,255,255,.95); }
+.p-games  { font-size: .66rem; color: rgba(255,255,255,.78); }
+
+/* ── Modal de ranking ─────────────────────────────────── */
+.ranking-modal-box {
+  max-width: 520px;
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 22px 20px;
+}
+.rank-header { text-align: center; margin-bottom: 14px; }
+.rank-header h3 { font-size: 1.25rem; color: var(--primary); margin: 0 0 4px; }
+.rank-subtitle  { font-size: .78rem; color: #999; margin: 0; }
+
+.rank-empty {
+  text-align: center;
+  padding: 28px 16px;
+  color: #999;
+  font-size: .92rem;
+  line-height: 1.7;
 }
 
-/**
- * Agrupa registros do Supabase por aluno e devolve ranking ordenado.
- * Aceita a nomenclatura snake_case da API.
- */
-function buildRankingFromScores(scores) {
-  const map = {};
-  scores.forEach(g => {
-    const n = g.student_name;
-    if (!map[n]) map[n] = {
-      studentName: n, totalScore: 0, gamesPlayed: 0,
-      bestScore: 0, totalCorrect: 0, totalWrong: 0,
-    };
-    const r = map[n];
-    r.totalScore   += (g.score            || 0);
-    r.gamesPlayed  += 1;
-    r.bestScore     = Math.max(r.bestScore, g.score || 0);
-    r.totalCorrect += (g.correct_answers  || 0);
-    r.totalWrong   += (g.wrong_answers    || 0);
-  });
-  return Object.values(map)
-    .map(r => ({ ...r, averageScore: Math.round(r.totalScore / r.gamesPlayed) }))
-    .sort((a, b) =>
-      b.totalScore   - a.totalScore   ||
-      b.gamesPlayed  - a.gamesPlayed  ||
-      b.bestScore    - a.bestScore    ||
-      b.averageScore - a.averageScore
-    );
+.rank-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .83rem;
+  margin: 6px 0 10px;
+}
+.rank-table th {
+  background: var(--primary);
+  color: #fff;
+  padding: 9px 6px;
+  text-align: center;
+  font-size: .78rem;
+  letter-spacing: .2px;
+  white-space: nowrap;
+}
+.rank-table td {
+  padding: 8px 6px;
+  text-align: center;
+  border-bottom: 1px solid #eee;
+  color: #333;
+}
+.rank-table .rank-name { text-align: left; font-weight: 700; }
+.rank-table .rank-pos  { font-size: 1rem; }
+.rank-table .rank-ok   { color: #2E7D32; font-weight: 700; }
+.rank-table .rank-err  { color: #C62828; font-weight: 700; }
+.rank-table tr.rank-gold   { background: #FFFDE7; }
+.rank-table tr.rank-silver { background: #F9F9F9; }
+.rank-table tr.rank-bronze { background: #FFF8F0; }
+.rank-table tr:hover       { background: #f0f4ff; }
+
+/* ── Semana atual: header ───────────────────────────── */
+.rank-week-header {
+  background: linear-gradient(135deg, #E8EAF6, #C5CAE9);
+  border-radius: 10px;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  text-align: center;
+}
+.rank-week-title {
+  font-size: .88rem;
+  font-weight: 700;
+  color: #3949AB;
 }
 
-/** Exibe toast discreto com resultado do envio online. */
-function showOnlineSaveStatus(ok) {
-  const el = DOM.onlineStatus;
-  if (!el) return;
-  el.textContent = ok
-    ? '🌐 Pontuação enviada para o ranking online!'
-    : '📱 Ranking online indisponível. Resultado salvo neste aparelho.';
-  el.className = `online-toast ${ok ? 'toast-ok' : 'toast-warn'}`;
-  el.style.display = 'block';
-  setTimeout(() => { el.style.display = 'none'; }, 4500);
+/* ── Campeões anteriores ────────────────────────────── */
+.champ-history-header {
+  margin: 18px 0 8px;
+  font-size: .88rem;
+  font-weight: 700;
+  color: #795548;
+  text-align: center;
+  letter-spacing: .3px;
+  border-top: 2px dashed #D7CCC8;
+  padding-top: 14px;
+}
+.champ-table .champ-period {
+  font-size: .75rem;
+  color: #888;
+  line-height: 1.4;
+}
+.champ-table .champ-period small { font-size: .72rem; }
+
+/* ── Botão certificado do campeão ───────────────────── */
+.rank-champion-btn-wrap {
+  text-align: center;
+  margin: 12px 0 4px;
+}
+.btn-champion-cert {
+  background: linear-gradient(135deg, #FFD700, #FFA000);
+  border: none;
+  border-radius: 24px;
+  padding: 10px 20px;
+  font-family: inherit;
+  font-size: .88rem;
+  font-weight: 700;
+  color: #5D4037;
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(255,160,0,.35);
+  transition: transform .15s, box-shadow .15s;
+  touch-action: manipulation;
+}
+.btn-champion-cert:hover  { transform: translateY(-2px); box-shadow: 0 5px 14px rgba(255,160,0,.5); }
+.btn-champion-cert:active { transform: scale(.96); }
+
+.rank-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+.btn-clear-rank {
+  background: transparent;
+  border: 1px solid #EF9A9A;
+  color: #EF5350;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: .78rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background .15s;
+}
+.btn-clear-rank:hover { background: #FFEBEE; }
+
+/* ── Ranking info no certificado ─────────────────────── */
+.cert-rank-info {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 16px;
+  font-size: .76rem;
+  color: #777;
+  line-height: 1.6;
+  margin: 6px auto 2px;
+  text-align: center;
+}
+.cert-rank-info:empty { display: none; }
+.cri-item strong { color: var(--primary); font-weight: 700; }
+
+/* ── Modal certificado do campeão ───────────────────────── */
+.champ-cert-modal-box {
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 0 0 16px;
+}
+#champ-cert-content {
+  background: linear-gradient(160deg, #FFFDE7 0%, #FFF8E1 100%);
+  border: 4px double #FFD700;
+  border-radius: 12px;
+  margin: 16px;
+  padding: 20px 18px;
+  text-align: center;
+  font-family: Georgia, 'Times New Roman', serif;
+}
+.cc-school {
+  font-size: .78rem;
+  color: #795548;
+  margin-bottom: 10px;
+  line-height: 1.5;
+}
+.cc-school small { font-size: .7rem; }
+.cc-trophy { font-size: 2.8rem; margin: 4px 0; }
+.cc-title {
+  font-size: 1.1rem;
+  color: #5D4037;
+  font-weight: 700;
+  margin: 4px 0 6px;
+  letter-spacing: .5px;
+}
+.cc-rule {
+  color: #FFB300;
+  font-size: .8rem;
+  letter-spacing: 3px;
+  margin: 6px 0;
+}
+.cc-text {
+  font-size: .82rem;
+  color: #555;
+  margin: 6px 0;
+  line-height: 1.5;
+}
+.cc-name {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #3E2723;
+  margin: 8px 0;
+  text-shadow: 0 1px 2px rgba(0,0,0,.1);
+}
+.cc-stats {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin: 12px 0;
+  flex-wrap: wrap;
+}
+.ccs-box {
+  background: rgba(255,215,0,.25);
+  border: 1px solid rgba(255,160,0,.4);
+  border-radius: 10px;
+  padding: 6px 14px;
+  min-width: 70px;
+  text-align: center;
+}
+.ccs-num {
+  display: block;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #E65100;
+}
+.ccs-lbl {
+  display: block;
+  font-size: .68rem;
+  color: #8D6E63;
+}
+.cc-period {
+  font-size: .76rem;
+  color: #8D6E63;
+  margin: 8px 0 0;
+}
+.cc-footer-sig {
+  margin: 14px auto 0;
+  width: 140px;
+  text-align: center;
+  font-size: .72rem;
+  color: #999;
+}
+.cc-sig-line {
+  border-top: 1px solid #ccc;
+  margin-bottom: 4px;
+}
+.cc-footer-date {
+  font-size: .72rem;
+  color: #bbb;
+  margin-top: 6px;
+}
+.champ-cert-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  padding: 0 16px 4px;
+  flex-wrap: wrap;
 }
 
-/**
- * Função de teste disponível no console do navegador.
- * Uso: await testSupabaseConnection()
- */
-window.testSupabaseConnection = async function () {
-  console.log('Testando conexão com Supabase...');
-  try {
-    const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/game_scores?limit=1&select=id`,
-      { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
-    );
-    if (res.ok) {
-      const data = await res.json();
-      console.log('✅ Supabase conectado! Registros encontrados:', data.length);
-      return true;
-    }
-    console.warn('❌ Supabase respondeu com erro:', res.status, await res.text());
-    return false;
-  } catch (err) {
-    console.error('❌ Erro ao conectar Supabase:', err.message);
-    return false;
-  }
-};
-
-/* ── Utilitários de semana ─────────────────────────────── */
-
-/** Retorna { startDate (domingo 00:00), endDate (sábado 23:59) } da semana. */
-function getWeekRange(date) {
-  const d   = new Date(date || Date.now());
-  const day = d.getDay();               // 0 = Dom … 6 = Sáb
-  const sun = new Date(d);
-  sun.setDate(d.getDate() - day);
-  sun.setHours(0, 0, 0, 0);
-  const sat = new Date(sun);
-  sat.setDate(sun.getDate() + 6);
-  sat.setHours(23, 59, 59, 999);
-  return { startDate: sun, endDate: sat };
+/* ── Responsivo mobile ─────────────────────────────────  */
+@media (max-width: 420px) {
+  .student-btn  { padding: 7px 12px; font-size: .82rem; }
+  .podium-place { min-width: 64px; padding: 6px 7px 5px; }
+  .p-name       { font-size: .72rem; }
+  .rank-table   { font-size: .74rem; }
+  .rank-table th, .rank-table td { padding: 6px 4px; }
+  .ranking-modal-box { padding: 14px 12px; }
+  .champ-cert-modal-box { max-height: 95vh; }
+  #champ-cert-content { margin: 10px; padding: 14px 12px; }
+  .cc-name  { font-size: 1.25rem; }
+  .cc-title { font-size: .95rem; }
 }
 
-/** Retorna o ID único da semana: "YYYY-MM-DD_to_YYYY-MM-DD". */
-function getWeekId(date) {
-  const { startDate, endDate } = getWeekRange(date);
-  const fmt = d => d.toISOString().slice(0, 10);
-  return `${fmt(startDate)}_to_${fmt(endDate)}`;
+/* ══════════════════════════════════════════════════════
+   SUPABASE – indicadores visuais
+   ══════════════════════════════════════════════════════ */
+
+/* ── Toast de status (envio online) ──────────────────── */
+.online-toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  padding: 10px 20px;
+  border-radius: 24px;
+  font-family: inherit;
+  font-size: .88rem;
+  font-weight: 600;
+  text-align: center;
+  box-shadow: 0 4px 16px rgba(0,0,0,.2);
+  pointer-events: none;
+  animation: toastFadeIn .3s ease;
+  white-space: nowrap;
+  max-width: 90vw;
+}
+.toast-ok   { background: #2E7D32; color: #fff; }
+.toast-warn { background: #F57F17; color: #fff; }
+@keyframes toastFadeIn {
+  from { opacity:0; transform: translateX(-50%) translateY(10px); }
+  to   { opacity:1; transform: translateX(-50%) translateY(0); }
 }
 
-/** Formata uma data como DD/MM/YYYY (fuso local). */
-function fmtDateBR(date) {
-  return new Date(date).toLocaleDateString('pt-BR',
-    { day: '2-digit', month: '2-digit', year: 'numeric' });
+/* ── Indicador de fonte no ranking (online/local) ──── */
+.rank-source {
+  font-size: .78rem;
+  margin-top: 5px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  display: inline-block;
+}
+.rank-source-online {
+  background: #E8F5E9;
+  color: #2E7D32;
+  border: 1px solid #A5D6A7;
+}
+.rank-source-local {
+  background: #FFF8E1;
+  color: #F57F17;
+  border: 1px solid #FFE082;
+}
+.rank-source-local small { display: block; font-size: .72rem; opacity: .85; }
+
+/* ── Badge de fonte no pódio ──────────────────────── */
+.podium-src-online {
+  background: #2E7D32;
+  color: #fff;
+  font-size: .65rem;
+  padding: 2px 7px;
+  border-radius: 10px;
+  vertical-align: middle;
+  margin-left: 4px;
+}
+.podium-src-local {
+  background: #F57F17;
+  color: #fff;
+  font-size: .65rem;
+  padding: 2px 7px;
+  border-radius: 10px;
+  vertical-align: middle;
+  margin-left: 4px;
 }
 
-/* ── Persistência ──────────────────────────────────────── */
-
-/** Retorna todas as partidas salvas (array). */
-function loadAllGames() {
-  try { return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); }
-  catch { return []; }
+/* ── Loading state no ranking ─────────────────────── */
+.rank-loading {
+  text-align: center;
+  padding: 20px;
+  color: #999;
+  font-size: .9rem;
+  animation: rankPulse 1.2s ease-in-out infinite;
+}
+@keyframes rankPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: .4; }
 }
 
-/**
- * Salva o resultado no localStorage (síncrono, sempre funciona).
- * O envio ao Supabase é feito separadamente em showVictory().
- */
-function saveGameResult() {
-  const { startDate, endDate } = getWeekRange(Date.now());
-  const result = {
-    studentName:    state.playerName,
-    score:          state.score,
-    correctAnswers: state.correct,
-    wrongAnswers:   state.wrong,
-    startedAt:      state.startedAt ? new Date(state.startedAt).toISOString() : null,
-    finishedAt:     new Date().toISOString(),
-    durationSeconds: state.startedAt
-      ? Math.round((Date.now() - state.startedAt) / 1000) : 0,
-    weekId:    getWeekId(Date.now()),
-    weekStart: startDate.toISOString(),
-    weekEnd:   endDate.toISOString(),
-  };
-  const games = loadAllGames();
-  games.push(result);
-  try { localStorage.setItem(LS_KEY, JSON.stringify(games)); } catch {}
-  return result;
+/* ── Origem no certificado ────────────────────────── */
+.cri-source {
+  font-size: .72rem;
+  color: #aaa;
+  margin-top: 4px;
+  font-style: italic;
 }
-
-/* ── Ranking semanal ───────────────────────────────────── */
-
-/**
- * Ranking da semana atual usando apenas localStorage (síncrono).
- * Usado como fallback quando o Supabase está indisponível.
- */
-function getLocalWeekRanking() {
-  const curWeekId = getWeekId(Date.now());
-  const map       = {};
-  loadAllGames()
-    .filter(g => g.weekId === curWeekId)
-    .forEach(g => {
-      const n = g.studentName;
-      if (!map[n]) map[n] = {
-        studentName: n, totalScore: 0, gamesPlayed: 0,
-        bestScore: 0, totalCorrect: 0, totalWrong: 0,
-      };
-      const r = map[n];
-      r.totalScore   += g.score;
-      r.gamesPlayed  += 1;
-      r.bestScore     = Math.max(r.bestScore, g.score);
-      r.totalCorrect += (g.correctAnswers || 0);
-      r.totalWrong   += (g.wrongAnswers   || 0);
-    });
-  return Object.values(map)
-    .map(r => ({ ...r, averageScore: Math.round(r.totalScore / r.gamesPlayed) }))
-    .sort((a, b) =>
-      b.totalScore   - a.totalScore   ||
-      b.gamesPlayed  - a.gamesPlayed  ||
-      b.bestScore    - a.bestScore    ||
-      b.averageScore - a.averageScore
-    );
-}
-
-/**
- * Ranking da semana atual (async).
- * Tenta Supabase primeiro; cai para localStorage se falhar.
- * Retorna { ranking: Array, source: "online"|"local" }
- */
-async function getCurrentWeekRanking() {
-  const onlineScores = await fetchCurrentWeekScoresOnline();
-  if (onlineScores !== null) {
-    return { ranking: buildRankingFromScores(onlineScores), source: 'online' };
-  }
-  return { ranking: getLocalWeekRanking(), source: 'local' };
-}
-
-/**
- * Histórico de campeões de semanas anteriores.
- * Tenta Supabase; fallback para localStorage.
- */
-async function getChampionsHistory() {
-  const curWeekId = getWeekId(Date.now());
-
-  // Tentativa online
-  const onlineScores = await fetchPastWeeksOnline();
-  if (onlineScores !== null) {
-    const weekMap = {};
-    onlineScores.forEach(g => {
-      if (!g.week_id) return;
-      if (!weekMap[g.week_id]) weekMap[g.week_id] = {
-        weekId: g.week_id, weekStart: g.week_start, weekEnd: g.week_end, games: [],
-      };
-      weekMap[g.week_id].games.push(g);
-    });
-    return Object.values(weekMap)
-      .sort((a, b) => b.weekId.localeCompare(a.weekId))
-      .map(week => {
-        const rankMap = {};
-        week.games.forEach(g => {
-          const n = g.student_name;
-          if (!rankMap[n]) rankMap[n] = { studentName: n, totalScore: 0, gamesPlayed: 0, bestScore: 0 };
-          rankMap[n].totalScore  += (g.score || 0);
-          rankMap[n].gamesPlayed += 1;
-          rankMap[n].bestScore    = Math.max(rankMap[n].bestScore, g.score || 0);
-        });
-        const sorted = Object.values(rankMap).sort((a, b) =>
-          b.totalScore - a.totalScore || b.gamesPlayed - a.gamesPlayed || b.bestScore - a.bestScore
-        );
-        return { weekId: week.weekId, weekStart: week.weekStart, weekEnd: week.weekEnd,
-                 champion: sorted[0] || null, ranking: sorted };
-      });
-  }
-
-  // Fallback localStorage
-  const weekMap = {};
-  loadAllGames().forEach(g => {
-    if (!g.weekId || g.weekId === curWeekId) return;
-    if (!weekMap[g.weekId]) weekMap[g.weekId] = {
-      weekId: g.weekId, weekStart: g.weekStart, weekEnd: g.weekEnd, games: [],
-    };
-    weekMap[g.weekId].games.push(g);
-  });
-  return Object.values(weekMap)
-    .sort((a, b) => b.weekId.localeCompare(a.weekId))
-    .map(week => {
-      const rankMap = {};
-      week.games.forEach(g => {
-        const n = g.studentName;
-        if (!rankMap[n]) rankMap[n] = { studentName: n, totalScore: 0, gamesPlayed: 0, bestScore: 0 };
-        rankMap[n].totalScore  += g.score;
-        rankMap[n].gamesPlayed += 1;
-        rankMap[n].bestScore    = Math.max(rankMap[n].bestScore, g.score);
-      });
-      const sorted = Object.values(rankMap).sort((a, b) =>
-        b.totalScore - a.totalScore || b.gamesPlayed - a.gamesPlayed || b.bestScore - a.bestScore
-      );
-      return { weekId: week.weekId, weekStart: week.weekStart, weekEnd: week.weekEnd,
-               champion: sorted[0] || null, ranking: sorted };
-    });
-}
-
-/* ── Renderização: pódio na tela inicial ───────────────── */
-async function renderWelcomePodium() {
-  const el = DOM.welcomePodium;
-  if (!el) return;
-  const { startDate, endDate } = getWeekRange(Date.now());
-  const period  = `${fmtDateBR(startDate)} a ${fmtDateBR(endDate)}`;
-  // Mostrar estado "carregando" enquanto busca online
-  el.innerHTML = `<p class="podium-label">🏆 Ranking da Semana</p>
-    <p class="podium-period">${period}</p>
-    <p class="podium-empty">🔄 Carregando...</p>`;
-
-  const { ranking, source } = await getCurrentWeekRanking();
-  const srcBadge = source === 'online'
-    ? '<span class="podium-src-online">🌐 online</span>'
-    : '<span class="podium-src-local">📱 local</span>';
-
-  if (ranking.length === 0) {
-    el.innerHTML = `
-      <p class="podium-label">🏆 Ranking da Semana ${srcBadge}</p>
-      <p class="podium-period">${period}</p>
-      <p class="podium-empty">Ranking da semana ainda vazio.<br>Seja o primeiro a jogar! 🌟</p>`;
-    return;
-  }
-  const medals  = ['🥇','🥈','🥉'];
-  const heights = ['90px','70px','56px'];
-  const cls     = ['p-gold','p-silver','p-bronze'];
-  const top     = ranking.slice(0, 3);
-  const order   = top.length >= 3 ? [1,0,2] : top.length === 2 ? [1,0] : [0];
-  let html = `<p class="podium-label">🏆 Ranking da Semana ${srcBadge}</p>
-    <p class="podium-period">${period}</p>
-    <div class="podium-row">`;
-  order.forEach(i => {
-    if (!top[i]) return;
-    const r = top[i];
-    html += `<div class="podium-place ${cls[i]}" style="min-height:${heights[i]}">
-      <span class="p-medal">${medals[i]}</span>
-      <span class="p-name">${r.studentName}</span>
-      <span class="p-score">${r.totalScore} pts</span>
-      <span class="p-games">${r.gamesPlayed}× jog.</span>
-    </div>`;
-  });
-  html += `</div>`;
-  el.innerHTML = html;
-}
-
-/* ── Renderização: modal de ranking ───────────────────── */
-async function renderRankingModal() {
-  const el = DOM.rankingContent;
-  if (!el) return;
-
-  const { startDate, endDate } = getWeekRange(Date.now());
-  const period = `${fmtDateBR(startDate)} a ${fmtDateBR(endDate)}`;
-
-  // Estado de carregamento
-  el.innerHTML = `<div class="rank-week-header">
-    <span class="rank-week-title">📅 Semana de ${period}</span>
-  </div><p class="rank-loading">🔄 Buscando ranking online...</p>`;
-
-  const { ranking, source } = await getCurrentWeekRanking();
-  const medals = ['🥇','🥈','🥉'];
-
-  const sourceHtml = source === 'online'
-    ? `<div class="rank-source rank-source-online">🌐 Ranking online da semana</div>`
-    : `<div class="rank-source rank-source-local">📱 Ranking deste aparelho
-         <small>(Supabase indisponível – mostrando apenas dados locais)</small>
-       </div>`;
-
-  let html = `<div class="rank-week-header">
-    <span class="rank-week-title">📅 Semana de ${period}</span>
-    ${sourceHtml}
-  </div>`;
-
-  if (ranking.length === 0) {
-    html += `<p class="rank-empty">Ranking da semana ainda vazio.<br>Seja o primeiro a jogar! 🌟</p>`;
-  } else {
-    html += `<table class="rank-table">
-      <thead><tr>
-        <th>#</th><th>Aluno(a)</th><th>Partidas</th>
-        <th>Pts semana</th><th>Melhor</th><th>Média</th><th>✓</th><th>✗</th>
-      </tr></thead><tbody>`;
-    ranking.forEach((r, i) => {
-      const pos = medals[i] || `${i+1}º`;
-      const cls = i === 0 ? 'rank-gold' : i === 1 ? 'rank-silver' : i === 2 ? 'rank-bronze' : '';
-      html += `<tr class="${cls}">
-        <td class="rank-pos">${pos}</td>
-        <td class="rank-name">${r.studentName}</td>
-        <td>${r.gamesPlayed}</td>
-        <td><strong>${r.totalScore}</strong></td>
-        <td>${r.bestScore}</td>
-        <td>${r.averageScore}</td>
-        <td class="rank-ok">${r.totalCorrect}</td>
-        <td class="rank-err">${r.totalWrong}</td>
-      </tr>`;
-    });
-    html += `</tbody></table>
-      <div class="rank-champion-btn-wrap">
-        <button id="btn-show-champion-cert" class="btn-champion-cert">
-          🏆 Ver certificado do campeão da semana
-        </button>
-      </div>`;
-  }
-
-  // ── Campeões anteriores ──
-  const history = await getChampionsHistory();
-  if (history.length > 0) {
-    html += `<div class="champ-history-header">🏅 Campeões Anteriores</div>
-      <table class="rank-table champ-table">
-        <thead><tr>
-          <th>Semana</th><th>Campeão(ã)</th><th>Total pts</th><th>Partidas</th><th>Melhor</th>
-        </tr></thead><tbody>`;
-    history.forEach(w => {
-      if (!w.champion) return;
-      const wS = w.weekStart ? fmtDateBR(w.weekStart) : '—';
-      const wE = w.weekEnd   ? fmtDateBR(w.weekEnd)   : '—';
-      html += `<tr>
-        <td class="champ-period">${wS}<br><small>a ${wE}</small></td>
-        <td class="rank-name">🏆 ${w.champion.studentName}</td>
-        <td><strong>${w.champion.totalScore}</strong></td>
-        <td>${w.champion.gamesPlayed}</td>
-        <td>${w.champion.bestScore}</td>
-      </tr>`;
-    });
-    html += `</tbody></table>`;
-  }
-
-  el.innerHTML = html;
-
-  // rebind do botão gerado dinamicamente
-  const btnCC = document.getElementById('btn-show-champion-cert');
-  if (btnCC) btnCC.addEventListener('click', openChampionCertificate);
-}
-
-/* ── Certificado do campeão da semana ─────────────────── */
-async function openChampionCertificate() {
-  const { ranking } = await getCurrentWeekRanking();
-  if (ranking.length === 0) return;
-  const champ  = ranking[0];
-  const { startDate, endDate } = getWeekRange(Date.now());
-  const period  = `${fmtDateBR(startDate)} a ${fmtDateBR(endDate)}`;
-  const today   = new Date().toLocaleDateString('pt-BR',
-    { day: '2-digit', month: 'long', year: 'numeric' });
-
-  if (DOM.champCertContent) {
-    DOM.champCertContent.innerHTML = `
-      <div class="cc-school">🏫 Escola Municipal 25 de Julho<br>
-        <small>Picada Verão, Picada São Jacó e Picada Schneider – Sapiranga/RS</small>
-      </div>
-      <div class="cc-trophy">🏆</div>
-      <h2 class="cc-title">Certificado de Campeão da Semana</h2>
-      <div class="cc-rule">✦ ✦ ✦ ✦ ✦</div>
-      <p class="cc-text">A Escola 25 de Julho parabeniza o(a) aluno(a)</p>
-      <div class="cc-name">${champ.studentName}</div>
-      <p class="cc-text">
-        por conquistar o <strong>1º lugar</strong> no ranking semanal do jogo<br>
-        <strong>English Bus Adventure</strong> 🚌
-      </p>
-      <p class="cc-text">
-        Você estudou inglês, ajudou o ônibus escolar<br>
-        e chegou mais perto da Escola 25 de Julho!
-      </p>
-      <div class="cc-rule">✦ ✦ ✦ ✦ ✦</div>
-      <div class="cc-stats">
-        <div class="ccs-box"><span class="ccs-num">${champ.totalScore}</span><span class="ccs-lbl">pts na semana</span></div>
-        <div class="ccs-box"><span class="ccs-num">${champ.gamesPlayed}</span><span class="ccs-lbl">partidas</span></div>
-        <div class="ccs-box"><span class="ccs-num">${champ.bestScore}</span><span class="ccs-lbl">melhor</span></div>
-      </div>
-      <div class="cc-period">📅 Semana: ${period}</div>
-      <div class="cc-rule">✦ ✦ ✦ ✦ ✦</div>
-      <div class="cc-footer-sig">
-        <div class="cc-sig-line"></div>
-        <span>Professora / Teacher</span>
-      </div>
-      <div class="cc-footer-date">${today}</div>
-    `;
-  }
-  DOM.modalChampCert.classList.remove('hidden');
-}
-
-/* ── Referências DOM ─────────────────────────────────────── */
-const $ = id => document.getElementById(id);
-
-const DOM = {
-  screens: {
-    welcome: $('screen-welcome'),
-    game:    $('screen-game'),
-    victory: $('screen-victory'),
-  },
-  playerName:      $('player-name'),
-  btnPlay:         $('btn-play'),
-  btnSound:        $('btn-sound'),
-  scoreVal:        $('score-val'),
-  progressFill:    $('progress-fill'),
-  progressBus:     $('progress-bus'),
-  friendsBar:      $('friends-bar'),
-  gameBus:         $('game-bus'),
-  sceneRoad:       $('scene-road'),
-  sceneTrees:      $('scene-trees'),
-  friendPopup:     $('friend-popup'),
-  fpBubble:        $('fp-bubble'),
-  fpName:          $('fp-name'),
-  qCatBadge:       $('q-cat-badge'),
-  qNum:            $('q-num'),
-  qEmoji:          $('q-emoji'),
-  qText:           $('q-text'),
-  opts:            [0,1,2,3].map(i => $(`opt${i}`)),
-  feedbackMsg:     $('feedback-msg'),
-  hBtnFriend:      $('hbtn-friend'),
-  hBtnHint:        $('hbtn-hint'),
-  hBtnTeacher:     $('hbtn-teacher'),
-  hcFriend:        $('hc-friend'),
-  hcHint:          $('hc-hint'),
-  hcTeacher:       $('hc-teacher'),
-  helpBar:         $('help-bar'),
-  modalBoarded:    $('modal-boarded'),
-  mbAvatar:        $('mb-avatar'),
-  mbTitle:         $('mb-title'),
-  mbMsg:           $('mb-msg'),
-  btnContinue:     $('btn-continue'),
-  modalFriendHelp: $('modal-friend-help'),
-  friendHintsRow:  $('friend-hints-row'),
-  btnCloseFH:      $('btn-close-fh'),
-  btnSpeakQ:         $('btn-speak-q'),
-  // painel de resultado
-  answerResult:      $('answer-result'),
-  arIcon:            $('ar-icon'),
-  arTitle:           $('ar-title'),
-  arPoints:          $('ar-points'),
-  arFriend:          $('ar-friend'),
-  arFriendPhrase:    $('ar-friend-phrase'),
-  arCorrect:         $('ar-correct'),
-  arExplanation:     $('ar-explanation'),
-  btnRepeatSpeech:   $('btn-repeat-speech'),
-  btnNextStop:       $('btn-next-stop'),
-  // modal de amigos
-  btnSpeakAllHints:  $('btn-speak-all-hints'),
-  scoreDelta:      $('score-delta'),
-  // victory
-  certName:        $('cert-name'),
-  certPts:         $('cert-pts'),
-  certCorrect:     $('cert-correct'),
-  certStars:       $('cert-stars'),
-  certDate:        $('cert-date'),
-  certRankInfo:    $('cert-rank-info'),
-  confettiLayer:   $('confetti-layer'),
-  btnReplay:       $('btn-replay'),
-  // ranking semanal
-  welcomePodium:    $('welcome-podium'),
-  studentGrid:      $('student-grid'),
-  btnRanking:       $('btn-ranking'),
-  btnRankingV:      $('btn-ranking-v'),
-  modalRanking:     $('modal-ranking'),
-  rankingContent:   $('ranking-content'),
-  btnCloseRanking:  $('btn-close-ranking'),
-  btnClearRanking:  $('btn-clear-ranking'),
-  // certificado do campeão
-  modalChampCert:   $('modal-champ-cert'),
-  champCertContent: $('champ-cert-content'),
-  btnCloseChampCert:$('btn-close-champ-cert'),
-  btnPrintChampCert:$('btn-print-champ-cert'),
-  // toast de status online
-  onlineStatus:     $('online-status'),
-};
-
-/* ══════════════════════════════════════════════════════════
-   ÁUDIO (Web Audio API – sem arquivos externos)
-   ══════════════════════════════════════════════════════════ */
-
-function ensureAudio() {
-  if (!state.audioCtx) {
-    state.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  }
-  if (state.audioCtx.state === 'suspended') state.audioCtx.resume();
-}
-
-function playTone(freq, dur, type = 'sine', vol = 0.25, startOffset = 0) {
-  if (!state.soundEnabled || !state.audioCtx) return;
-  const ctx  = state.audioCtx;
-  const t    = ctx.currentTime + startOffset;
-  const osc  = ctx.createOscillator();
-  const gain = ctx.createGain();
-  osc.connect(gain);
-  gain.connect(ctx.destination);
-  osc.type = type;
-  osc.frequency.setValueAtTime(freq, t);
-  gain.gain.setValueAtTime(vol, t);
-  gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
-  osc.start(t);
-  osc.stop(t + dur + 0.05);
-}
-
-function playCorrect() {
-  ensureAudio();
-  playTone(523, 0.12, 'sine', 0.28, 0);
-  playTone(659, 0.12, 'sine', 0.28, 0.10);
-  playTone(784, 0.25, 'sine', 0.28, 0.20);
-}
-
-function playWrong() {
-  ensureAudio();
-  playTone(220, 0.3, 'sawtooth', 0.2, 0);
-  playTone(165, 0.3, 'sawtooth', 0.18, 0.20);
-}
-
-function playClick() {
-  ensureAudio();
-  playTone(800, 0.06, 'square', 0.1, 0);
-}
-
-function playFriendBoarded() {
-  ensureAudio();
-  const notes = [523, 587, 659, 784, 880];
-  notes.forEach((f, i) => playTone(f, 0.15, 'sine', 0.25, i * 0.08));
-}
-
-function playBusHorn() {
-  ensureAudio();
-  playTone(440, 0.14, 'square', 0.18, 0);
-  playTone(440, 0.28, 'square', 0.18, 0.22);
-}
-
-function playHelpSound() {
-  ensureAudio();
-  playTone(660, 0.1, 'sine', 0.2, 0);
-  playTone(880, 0.15, 'sine', 0.2, 0.12);
-}
-
-function playVictory() {
-  ensureAudio();
-  const melody = [
-    [523,0.18],[523,0.08],[587,0.28],[523,0.28],[698,0.28],[659,0.55],
-    [523,0.18],[523,0.08],[587,0.28],[523,0.28],[784,0.28],[698,0.55],
-  ];
-  let t = 0;
-  melody.forEach(([f, d]) => { playTone(f, d * 0.85, 'sine', 0.3, t); t += d; });
-}
-
-/* ══════════════════════════════════════════════════════════
-   FALA (Web Speech API – sem arquivos externos)
-   ══════════════════════════════════════════════════════════ */
-
-let _voiceCache = {};   // { 'en-US': VoiceObj, 'pt-BR': VoiceObj }
-
-function _getVoice(lang) {
-  if (!window.speechSynthesis) return null;
-  if (_voiceCache[lang]) return _voiceCache[lang];
-  const voices = window.speechSynthesis.getVoices();
-  let found = null;
-  if (lang === 'pt-BR') {
-    found = voices.find(v => v.lang === 'pt-BR')
-         || voices.find(v => v.lang.startsWith('pt'))
-         || null;
-  } else {
-    found = voices.find(v => v.lang === 'en-US')
-         || voices.find(v => v.lang === 'en-GB')
-         || voices.find(v => v.lang.startsWith('en'))
-         || null;
-  }
-  if (found) _voiceCache[lang] = found;
-  return found;
-}
-if (window.speechSynthesis) {
-  window.speechSynthesis.addEventListener('voiceschanged', () => { _voiceCache = {}; });
-}
-
-function _makeUtter(text, lang) {
-  const u   = new SpeechSynthesisUtterance(text);
-  u.lang    = lang;
-  u.rate    = lang === 'pt-BR' ? 0.9 : 0.82;
-  u.pitch   = 1.05;
-  const v   = _getVoice(lang);
-  if (v) u.voice = v;
-  return u;
-}
-
-function stopSpeech() {
-  if (window.speechSynthesis) window.speechSynthesis.cancel();
-}
-
-function speakPortuguese(text) {
-  if (!state.soundEnabled || !window.speechSynthesis) return;
-  stopSpeech();
-  window.speechSynthesis.speak(_makeUtter(text, 'pt-BR'));
-}
-
-function speakEnglish(text) {
-  if (!state.soundEnabled || !window.speechSynthesis) return;
-  stopSpeech();
-  window.speechSynthesis.speak(_makeUtter(text, 'en-US'));
-}
-
-/* speakMixed: fala partes em sequência, cada uma com seu idioma.
-   parts = [{ lang:'pt-BR'|'en-US', text:'...' }, …] */
-function speakMixed(parts) {
-  if (!state.soundEnabled || !window.speechSynthesis) return;
-  if (!parts || parts.length === 0) return;
-  stopSpeech();
-  let idx = 0;
-  function next() {
-    if (idx >= parts.length || !state.soundEnabled) return;
-    const p = parts[idx++];
-    const u = _makeUtter(p.text, p.lang || 'en-US');
-    u.onend   = next;
-    u.onerror = next;
-    window.speechSynthesis.speak(u);
-  }
-  next();
-}
-
-/* getSpeechParts: decide o que falar para o botão da pergunta.
-   Prioridade: speechParts > auto-detect '"X" in English is…' > speakText > q */
-function getSpeechParts(q) {
-  if (q.speechParts) return q.speechParts;
-  const m = q.q.match(/^"([^"]+)"\s+in\s+English\s+is/i);
-  if (m) return [
-    { lang: 'pt-BR', text: m[1] },
-    { lang: 'en-US', text: 'in English is' }
-  ];
-  if (q.speakText) return [{ lang: 'en-US', text: q.speakText }];
-  return [{ lang: 'en-US', text: q.q }];
-}
-
-/* ══════════════════════════════════════════════════════════
-   CONSTRUÇÃO DA CENA
-   ══════════════════════════════════════════════════════════ */
-
-function buildScene() {
-  buildTrees();
-  buildStopMarkers();
-}
-
-function buildTrees() {
-  const container = DOM.sceneTrees;
-  container.innerHTML = '';
-  const positions = [4, 14, 27, 40, 52, 63, 76, 88];
-  positions.forEach(pct => {
-    const sz   = 22 + Math.random() * 18;
-    const tree = document.createElement('div');
-    tree.className = 's-tree';
-    tree.style.left = pct + '%';
-    const top   = document.createElement('div');
-    top.className = 's-tree-top';
-    top.style.width  = sz + 'px';
-    top.style.height = sz + 'px';
-    const trunk = document.createElement('div');
-    trunk.className = 's-tree-trunk';
-    trunk.style.width  = Math.round(sz * 0.22) + 'px';
-    trunk.style.height = Math.round(sz * 0.4)  + 'px';
-    tree.appendChild(top);
-    tree.appendChild(trunk);
-    container.appendChild(tree);
-  });
-}
-
-function buildStopMarkers() {
-  DOM.sceneRoad.querySelectorAll('.stop-marker').forEach(el => el.remove());
-  FRIENDS.forEach((f, i) => {
-    const pct    = busLeftPct(f.score);
-    const marker = document.createElement('div');
-    marker.className = 'stop-marker';
-    marker.id        = `marker-${i}`;
-    marker.style.left = pct + '%';
-    const house  = document.createElement('div');
-    house.className  = 'sm-house';
-    house.textContent = '🏠';
-    const flag   = document.createElement('div');
-    flag.className   = 'sm-flag';
-    const nameEl = document.createElement('div');
-    nameEl.className  = 'sm-name';
-    nameEl.textContent = f.name;
-    marker.appendChild(house);
-    marker.appendChild(flag);
-    marker.appendChild(nameEl);
-    DOM.sceneRoad.appendChild(marker);
-  });
-}
-
-function buildFriendsBar() {
-  DOM.friendsBar.innerHTML = '';
-  FRIENDS.forEach((f, i) => {
-    const chip   = document.createElement('div');
-    chip.className = 'friend-chip';
-    chip.id        = `chip-${i}`;
-    const avatar = document.createElement('div');
-    avatar.className  = 'friend-avatar';
-    avatar.style.background = f.color;
-    avatar.textContent = f.initial;
-    const name   = document.createElement('div');
-    name.className  = 'friend-chip-name';
-    name.textContent = f.name;
-    chip.appendChild(avatar);
-    chip.appendChild(name);
-    DOM.friendsBar.appendChild(chip);
-  });
-}
-
-/* ══════════════════════════════════════════════════════════
-   INICIAR JOGO
-   ══════════════════════════════════════════════════════════ */
-
-DOM.btnPlay.addEventListener('click', () => { ensureAudio(); playClick(); startGame(); });
-
-function startGame() {
-  const name = DOM.playerName.value.trim();
-  if (!name) {
-    DOM.studentGrid.classList.add('shake');
-    setTimeout(() => DOM.studentGrid.classList.remove('shake'), 500);
-    return;
-  }
-  state.playerName    = name;
-  state.startedAt     = Date.now();
-  state.score         = 0;
-  state.correct       = 0;
-  state.wrong         = 0;
-  state.total         = 0;
-  state.helpFriend    = 3;
-  state.helpHint      = 2;
-  state.helpTeacher   = 1;
-  state.boardedCount  = 0;
-  state.answered      = false;
-  state.pool          = shuffle([...QUESTIONS]);
-
-  buildFriendsBar();
-  buildScene();
-  updateScoreUI(0, null);
-  updateHelpCounts();
-
-  showScreen('game');
-  setTimeout(() => { playBusHorn(); nextQuestion(); }, 400);
-}
-
-/* ══════════════════════════════════════════════════════════
-   LÓGICA DAS PERGUNTAS
-   ══════════════════════════════════════════════════════════ */
-
-function nextQuestion() {
-  if (state.pool.length === 0) state.pool = shuffle([...QUESTIONS]);
-  state.currentQ          = state.pool.pop();
-  state.answered          = false;
-  state.boardedThisAnswer = false;
-  state.boardedFriend     = null;
-
-  console.log('Pergunta renderizada:', state.currentQ.q);
-
-  DOM.qCatBadge.textContent   = state.currentQ.cat;
-  DOM.qNum.textContent        = `Pergunta ${state.total + 1}`;
-  DOM.qEmoji.textContent      = state.currentQ.emoji;
-  DOM.qText.textContent       = state.currentQ.q;
-  DOM.feedbackMsg.textContent = '';
-  DOM.feedbackMsg.className   = '';
-
-  // ocultar painel de resultado – via style direto (não depende de CSS)
-  DOM.answerResult.style.display = 'none';
-  DOM.answerResult.className     = '';
-
-  // botão de fala da pergunta – respeita idioma misto
-  const qParts = getSpeechParts(state.currentQ);
-  DOM.btnSpeakQ.onclick = function() { speakMixed(qParts); };
-  DOM.btnSpeakQ.setAttribute('aria-label', 'Ouvir pergunta em inglês');
-
-  // restaurar alternativas – nova estrutura answer-row / answer-main / answer-audio
-  DOM.opts.forEach((row, i) => {
-    const optText = state.currentQ.opts[i];
-
-    row.innerHTML  = '';
-    row.className  = 'answer-row';
-    row.style.opacity = '';
-
-    // Botão principal (responde)
-    const mainBtn   = document.createElement('button');
-    mainBtn.className   = 'answer-main';
-    mainBtn.type        = 'button';
-    mainBtn.textContent = optText;
-    mainBtn.disabled    = false;
-    mainBtn.onclick = (function(index) {
-      return function() {
-        console.log('Resposta clicada', index);
-        selectAnswer(index);
-      };
-    })(i);
-
-    // Botão de áudio (apenas fala – NUNCA responde)
-    const audioBtn  = document.createElement('button');
-    audioBtn.className  = 'answer-audio';
-    audioBtn.type       = 'button';
-    audioBtn.textContent = '🔊';
-    audioBtn.setAttribute('aria-label', `Ouvir alternativa ${optText}`);
-    const _txt = optText;
-    audioBtn.addEventListener('click', function(e) {
-      e.stopPropagation();
-      e.preventDefault();
-      speakEnglish(_txt);
-    });
-
-    row.appendChild(mainBtn);
-    row.appendChild(audioBtn);
-  });
-
-  console.log('Botões criados', DOM.opts.length);
-
-  // mostrar barra de ajudas
-  DOM.helpBar.style.visibility    = '';
-  DOM.helpBar.style.pointerEvents = '';
-
-  updateHelpCounts();
-  updateFriendPopup();
-}
-
-function selectAnswer(idx) {
-  console.log('selectAnswer chamada', idx);
-  if (state.answered) return;
-  ensureAudio();
-  state.answered = true;
-  state.total++;
-
-  const q       = state.currentQ;
-  const correct = (idx === q.a);
-
-  // desabilitar todas as alternativas imediatamente
-  DOM.opts.forEach(row => {
-    const mb = row.querySelector('.answer-main');
-    if (mb) mb.disabled = true;
-    row.classList.add('disabled');
-    row.style.opacity = '.75';
-  });
-  // destacar correta e incorreta (opacidade total nelas)
-  DOM.opts[q.a].classList.add('correct');
-  DOM.opts[q.a].classList.remove('disabled');
-  DOM.opts[q.a].style.opacity = '1';
-  if (!correct) {
-    DOM.opts[idx].classList.add('wrong');
-    DOM.opts[idx].classList.remove('disabled');
-    DOM.opts[idx].style.opacity = '1';
-  }
-
-  // ocultar barra de ajudas enquanto resultado está visível
-  DOM.helpBar.style.visibility   = 'hidden';
-  DOM.helpBar.style.pointerEvents = 'none';
-  // ocultar dica de help
-  DOM.feedbackMsg.textContent = '';
-  DOM.feedbackMsg.className   = '';
-
-  if (correct) {
-    state.correct++;
-    playCorrect();
-    showScoreDelta('+10', true);
-    updateScoreUI(state.score + 10, '+10');
-    showAnswerResult(true, q, 0);
-  } else {
-    state.wrong++;
-    playWrong();
-    const penalty = Math.min(WRONG_PENALTY, state.score);
-    if (penalty > 0) showScoreDelta(`-${penalty}`, false);
-    updateScoreUI(Math.max(0, state.score - penalty), null);
-    showAnswerResult(false, q, penalty);
-  }
-}
-
-window.selectAnswer = selectAnswer;
-
-/* Preencher e exibir o painel de resultado */
-function showAnswerResult(correct, q, penalty) {
-  const ar = DOM.answerResult;
-  ar.removeAttribute('hidden');
-  ar.style.display = 'block';
-  ar.className     = correct ? 'result-correct' : 'result-wrong';
-
-  DOM.arIcon.textContent  = correct ? '✅' : '❌';
-  DOM.arTitle.textContent = correct
-    ? 'Muito bem! Você acertou! 🎉'
-    : 'Ops! Vamos aprender juntos.';
-  DOM.arPoints.textContent = correct
-    ? `⭐ +10 pts — total: ${state.score}`
-    : (penalty > 0 ? `❌ -${penalty} pts` : '');
-
-  // Info do amigo (se embarcou nesta resposta)
-  const f = state.boardedFriend;
-  if (correct && f) {
-    DOM.arFriend.textContent      = `🚌 ${f.name} subiu no ônibus!`;
-    DOM.arFriendPhrase.textContent = `💬 ${f.name} diz: "${f.phrase}"`;
-  } else {
-    DOM.arFriend.textContent       = '';
-    DOM.arFriendPhrase.textContent = '';
-  }
-
-  DOM.arCorrect.textContent     = correct
-    ? ''
-    : `✏️ A resposta certa era: "${q.opts[q.a]}"`;
-  DOM.arExplanation.textContent = q.hint ? `💡 ${q.hint}` : '';
-
-  console.log('Feedback renderizado –', correct ? 'CERTO' : 'ERRADO');
-
-  // Montar partes de fala para este feedback
-  let parts;
-  if (correct) {
-    if (f) {
-      // boarding já foi falado em boardFriend; reutilizar lastSpeechParts
-      parts = state.lastSpeechParts;
-    } else {
-      parts = [{ lang: 'pt-BR', text: `Muito bem! Você acertou. Você tem ${state.score} pontos!` }];
-      state.lastSpeechParts = parts;
-      setTimeout(() => speakMixed(parts), 200);
-    }
-  } else {
-    parts = [
-      { lang: 'pt-BR', text: 'Ops! Vamos aprender juntos. A resposta certa era:' },
-      { lang: 'en-US', text: q.opts[q.a] }
-    ];
-    state.lastSpeechParts = parts;
-    setTimeout(() => speakMixed(parts), 200);
-  }
-
-  // Rolar o botão para a tela no celular
-  setTimeout(() => {
-    DOM.btnNextStop.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }, 80);
-}
-
-function advanceAfterAnswer() {
-  if (state.score >= 100) showVictory();
-  else nextQuestion();
-}
-
-// Botão "Próxima Parada"
-DOM.btnNextStop.addEventListener('click', () => {
-  playClick();
-  stopSpeech();
-  advanceAfterAnswer();
-});
-
-// Botão 🔊 "Ouvir novamente" no painel de resultado
-DOM.btnRepeatSpeech.addEventListener('click', (e) => {
-  e.stopPropagation();
-  if (state.lastSpeechParts) speakMixed(state.lastSpeechParts);
-});
-
-/* ── Delta flutuante de pontuação ──────────────────────── */
-function showScoreDelta(text, isGood) {
-  const el = DOM.scoreDelta;
-  if (!el) return;
-  el.textContent = text;
-  el.className   = 'score-delta-anim ' + (isGood ? 'delta-up' : 'delta-down');
-  // resetar animação
-  void el.offsetWidth;
-  el.style.animation = 'none';
-  void el.offsetWidth;
-  el.style.animation = '';
-  el.className = 'score-delta-anim ' + (isGood ? 'delta-up' : 'delta-down');
-}
-
-/* ══════════════════════════════════════════════════════════
-   PONTUAÇÃO E PROGRESSO
-   ══════════════════════════════════════════════════════════ */
-
-function updateScoreUI(newScore, _delta) {
-  const oldScore = state.score;
-  state.score    = Math.max(0, Math.min(newScore, 100));
-
-  DOM.scoreVal.textContent = state.score;
-
-  const pct = (state.score / 100) * 100;
-  DOM.progressFill.style.width = pct + '%';
-  DOM.progressBus.style.left   = pct + '%';
-
-  moveBus(state.score);
-  checkFriendMilestones(oldScore, state.score);
-}
-
-function busLeftPct(score) {
-  return 3 + (score / 100) * 80;
-}
-
-function moveBus(score) {
-  const pct = busLeftPct(score);
-  DOM.gameBus.style.left = `calc(${pct}% - 41px)`;
-}
-
-function checkFriendMilestones(oldScore, newScore) {
-  FRIENDS.forEach((f, i) => {
-    if (oldScore < f.score && newScore >= f.score) boardFriend(i);
-    const marker = document.getElementById(`marker-${i}`);
-    if (marker) {
-      marker.classList.toggle('visited', newScore >= f.score);
-      marker.classList.toggle('current',
-        newScore >= f.score &&
-        (i === FRIENDS.length - 1 || newScore < FRIENDS[i + 1].score)
-      );
-    }
-  });
-}
-
-function boardFriend(idx) {
-  const f    = FRIENDS[idx];
-  const chip = document.getElementById(`chip-${idx}`);
-  if (chip) chip.classList.add('boarded');
-  state.boardedCount++;
-  state.boardedThisAnswer = true;
-  state.boardedFriend     = f;
-  playFriendBoarded();
-
-  DOM.mbAvatar.textContent = getBigEmoji(f.name);
-  DOM.mbTitle.textContent  = `${f.name} subiu no ônibus! 🚌`;
-  DOM.mbMsg.textContent    = `${f.name} diz: "${f.phrase}" 💬`;
-  DOM.modalBoarded.classList.remove('hidden');
-
-  // Auto-falar a celebração (usuário acabou de clicar → interação garantida)
-  const boardParts = [
-    { lang: 'pt-BR', text: `${f.name} subiu no ônibus! Muito bem! ${f.name} diz:` },
-    { lang: 'en-US', text: f.phrase },
-    { lang: 'pt-BR', text: `Você tem ${state.score} pontos!` }
-  ];
-  state.lastSpeechParts = boardParts;
-  setTimeout(() => speakMixed(boardParts), 150);
-}
-
-// "Continuar" fecha o modal; a navegação fica com o botão "Próxima Parada"
-DOM.btnContinue.addEventListener('click', () => {
-  playClick();
-  DOM.modalBoarded.classList.add('hidden');
-});
-
-function updateFriendPopup() {
-  const next = FRIENDS.find(f => state.score < f.score);
-  if (!next) { DOM.friendPopup.classList.add('hidden'); return; }
-  DOM.fpBubble.textContent    = getBigEmoji(next.name);
-  DOM.fpName.textContent      = next.name;
-  DOM.friendPopup.classList.remove('hidden');
-  const pct = busLeftPct(next.score);
-  DOM.friendPopup.style.left     = `calc(${pct}% - 18px)`;
-  DOM.friendPopup.style.bottom   = '42px';
-  DOM.friendPopup.style.position = 'absolute';
-}
-
-/* ══════════════════════════════════════════════════════════
-   SISTEMA DE AJUDAS
-   ══════════════════════════════════════════════════════════ */
-
-DOM.hBtnFriend.addEventListener('click',  () => useHelp('friend'));
-DOM.hBtnHint.addEventListener('click',    () => useHelp('hint'));
-DOM.hBtnTeacher.addEventListener('click', () => useHelp('teacher'));
-window.useHelp = useHelp;
-
-function useHelp(type) {
-  if (state.answered) return;
-  ensureAudio();
-  playHelpSound();
-
-  const q = state.currentQ;
-
-  if (type === 'friend') {
-    if (state.helpFriend <= 0) return;
-    state.helpFriend--;
-    DOM.hcFriend.textContent = state.helpFriend;
-    if (state.helpFriend === 0) DOM.hBtnFriend.disabled = true;
-    showFriendHelpModal(q);
-
-  } else if (type === 'hint') {
-    if (state.helpHint <= 0) return;
-    state.helpHint--;
-    DOM.hcHint.textContent = state.helpHint;
-    if (state.helpHint === 0) DOM.hBtnHint.disabled = true;
-    DOM.feedbackMsg.textContent = `📝 Dica: ${q.hint}`;
-    DOM.feedbackMsg.className   = '';
-
-  } else if (type === 'teacher') {
-    if (state.helpTeacher <= 0) return;
-    state.helpTeacher--;
-    DOM.hcTeacher.textContent = state.helpTeacher;
-    if (state.helpTeacher === 0) DOM.hBtnTeacher.disabled = true;
-
-    const hint = q.teacherHint;
-    const speakText = `Professora diz: ${hint}`;
-
-    // Reconstruir com botão de fala inline
-    DOM.feedbackMsg.innerHTML = '';
-    DOM.feedbackMsg.className = 'teacher-hint';
-
-    const textNode = document.createElement('span');
-    textNode.textContent = `📞 Professora: "${hint}"`;
-
-    const speakBtn = document.createElement('button');
-    speakBtn.className   = 'speak-btn speak-inline';
-    speakBtn.setAttribute('aria-label', 'Ouvir dica da professora');
-    speakBtn.textContent = '🔊';
-    speakBtn.addEventListener('click', function(e) {
-      e.stopPropagation();
-      speakPortuguese(speakText);
-    });
-
-    DOM.feedbackMsg.appendChild(textNode);
-    DOM.feedbackMsg.appendChild(speakBtn);
-
-    // Auto-falar (há interação do usuário garantida neste ponto)
-    speakPortuguese(speakText);
-  }
-}
-
-/* ── Modal ajuda dos amigos ──────────────────────────────── */
-function showFriendHelpModal(q) {
-  // Escolher 3 amigos (dos embarcados ou aleatórios da lista)
-  const boarded = FRIENDS.filter((_, i) => i < state.boardedCount);
-  const pool    = boarded.length >= 3
-    ? [...boarded]
-    : shuffle([...FRIENDS]).slice(0, 3);
-  const chosen  = shuffle([...pool]).slice(0, 3);
-
-  // Montar sugestões: 2 corretas e 1 errada (ou 1 correta e 2 erradas, 70% vs 30%)
-  const correctOpt = q.opts[q.a];
-  const wrongOpts  = q.opts.filter((_, i) => i !== q.a);
-  shuffle(wrongOpts);
-
-  // 70% chance de 2 amigos apontarem a certa
-  const majorityCorrect = Math.random() < 0.70;
-  const suggestions = majorityCorrect
-    ? [correctOpt, correctOpt, wrongOpts[0]]
-    : [correctOpt, wrongOpts[0], wrongOpts[1]];
-  shuffle(suggestions);
-
-  // Guardar para o "Ouvir todos"
-  const hintsForSpeech = chosen.map((fr, i) => ({ name: fr.name, suggestion: suggestions[i] }));
-
-  // Preencher modal
-  DOM.friendHintsRow.innerHTML = '';
-  chosen.forEach((friend, i) => {
-    const wrap   = document.createElement('div');
-    wrap.className = 'friend-hint';
-
-    // Balão com texto + botão 🔊
-    const bubble  = document.createElement('div');
-    bubble.className = 'fh-bubble';
-
-    const bubbleTxt = document.createElement('span');
-    bubbleTxt.textContent = suggestions[i];
-
-    const speakBubble = document.createElement('button');
-    speakBubble.className = 'speak-btn speak-opt fh-speak';
-    speakBubble.setAttribute('aria-label', `Ouvir palpite: ${suggestions[i]}`);
-    speakBubble.textContent = '🔊';
-    const _sug  = suggestions[i];
-    const _nome = friend.name;
-    speakBubble.addEventListener('click', function(e) {
-      e.stopPropagation();
-      speakMixed([
-        { lang: 'pt-BR', text: `${_nome} acha que é` },
-        { lang: 'en-US', text: _sug }
-      ]);
-    });
-
-    bubble.appendChild(bubbleTxt);
-    bubble.appendChild(speakBubble);
-
-    const avatar = document.createElement('div');
-    avatar.className = 'fh-avatar';
-    avatar.style.background = friend.color;
-    avatar.textContent = friend.initial;
-
-    const name   = document.createElement('div');
-    name.className = 'fh-name';
-    name.textContent = friend.name;
-
-    wrap.appendChild(bubble);
-    wrap.appendChild(avatar);
-    wrap.appendChild(name);
-    DOM.friendHintsRow.appendChild(wrap);
-  });
-
-  // Botão "Ouvir todos" — fala PT+EN: "Nome acha que é" + palavra em inglês
-  if (DOM.btnSpeakAllHints) {
-    DOM.btnSpeakAllHints.onclick = function(e) {
-      e.stopPropagation();
-      const parts = [];
-      hintsForSpeech.forEach(h => {
-        parts.push({ lang: 'pt-BR', text: `${h.name} acha que é` });
-        parts.push({ lang: 'en-US', text: h.suggestion });
-      });
-      speakMixed(parts);
-    };
-  }
-
-  DOM.modalFriendHelp.classList.remove('hidden');
-}
-
-DOM.btnCloseFH.addEventListener('click', () => {
-  playClick();
-  DOM.modalFriendHelp.classList.add('hidden');
-});
-
-function updateHelpCounts() {
-  DOM.hcFriend.textContent  = state.helpFriend;
-  DOM.hcHint.textContent    = state.helpHint;
-  DOM.hcTeacher.textContent = state.helpTeacher;
-  DOM.hBtnFriend.disabled   = state.helpFriend  === 0;
-  DOM.hBtnHint.disabled     = state.helpHint    === 0;
-  DOM.hBtnTeacher.disabled  = state.helpTeacher === 0;
-}
-
-/* ══════════════════════════════════════════════════════════
-   VITÓRIA
-   ══════════════════════════════════════════════════════════ */
-
-async function showVictory() {
-  playVictory();
-  spawnConfetti();
-
-  // 1. Salvar localmente (sempre, síncrono)
-  const result = saveGameResult();
-
-  // 2. Preencher certificado imediatamente com dados locais
-  DOM.certName.textContent    = state.playerName;
-  DOM.certPts.textContent     = state.score;
-  DOM.certCorrect.textContent = state.correct;
-  DOM.certStars.textContent   = starsForScore(state.correct, state.total);
-  DOM.certDate.textContent    = new Date().toLocaleDateString('pt-BR', {
-    day:'2-digit', month:'long', year:'numeric',
-  });
-  if (DOM.certRankInfo) {
-    DOM.certRankInfo.innerHTML =
-      `<div class="cri-item">⏳ Calculando posição no ranking...</div>`;
-  }
-  showScreen('victory');
-
-  // 3. Enviar ao Supabase (async) e mostrar toast
-  const savedOnline = await saveGameResultOnline(result);
-  showOnlineSaveStatus(savedOnline);
-
-  // 4. Buscar ranking atualizado (online se possível, local se fallback)
-  const { startDate, endDate } = getWeekRange(Date.now());
-  const period = `${fmtDateBR(startDate)} a ${fmtDateBR(endDate)}`;
-  const { ranking, source } = await getCurrentWeekRanking();
-  const myName  = state.playerName;
-  const idx     = ranking.findIndex(r => r.studentName === myName);
-  const rankInfo = idx >= 0 ? { position: idx + 1, data: ranking[idx] } : null;
-  const srcLabel = source === 'online' ? '🌐 Ranking online' : '📱 Ranking local';
-
-  if (DOM.certRankInfo) {
-    if (rankInfo) {
-      const { position, data } = rankInfo;
-      const posLabel = position === 1 ? '🥇 1º lugar'
-                     : position === 2 ? '🥈 2º lugar'
-                     : position === 3 ? '🥉 3º lugar'
-                     : `${position}º lugar`;
-      DOM.certRankInfo.innerHTML = `
-        <div class="cri-item">📅 Semana: <strong>${period}</strong></div>
-        <div class="cri-item">🏆 Ranking da semana: <strong>${posLabel}</strong></div>
-        <div class="cri-item">⭐ Pontos na semana: <strong>${data.totalScore}</strong></div>
-        <div class="cri-item">📊 Partidas na semana: <strong>${data.gamesPlayed}</strong></div>
-        <div class="cri-item">🌟 Melhor pontuação: <strong>${data.bestScore}</strong></div>
-        <div class="cri-source">${srcLabel}</div>
-      `;
-    } else {
-      DOM.certRankInfo.innerHTML = `<div class="cri-item">📅 Semana: <strong>${period}</strong></div>`;
-    }
-  }
-
-  // 5. Atualizar pódio da tela inicial em background
-  renderWelcomePodium();
-}
-
-function starsForScore(correct, total) {
-  if (total === 0) return '⭐';
-  const pct = correct / total;
-  if (pct >= 0.85) return '⭐⭐⭐';
-  if (pct >= 0.65) return '⭐⭐';
-  return '⭐';
-}
-
-function spawnConfetti() {
-  DOM.confettiLayer.innerHTML = '';
-  const colors = ['#FFD700','#FF6B6B','#3DCDC7','#6BCB77','#A78BFA','#F472B6','#60A5FA'];
-  for (let i = 0; i < 70; i++) {
-    const el    = document.createElement('div');
-    el.className = 'conf-piece';
-    const color = colors[i % colors.length];
-    const size  = 7 + Math.random() * 10;
-    const left  = Math.random() * 100;
-    const delay = Math.random() * 1.8;
-    const dur   = 1.8 + Math.random() * 2;
-    el.style.cssText = `background:${color};width:${size}px;height:${size}px;left:${left}%;
-      animation-duration:${dur}s;animation-delay:${delay}s;
-      border-radius:${Math.random() > .5 ? '50%' : '3px'};`;
-    DOM.confettiLayer.appendChild(el);
-  }
-}
-
-/* ── Jogar de novo ───────────────────────────────────────── */
-DOM.btnReplay.addEventListener('click', () => {
-  playClick();
-  DOM.confettiLayer.innerHTML = '';
-  showScreen('welcome');
-});
-
-/* ══════════════════════════════════════════════════════════
-   SOM ON/OFF
-   ══════════════════════════════════════════════════════════ */
-DOM.btnSound.addEventListener('click', () => {
-  ensureAudio();
-  state.soundEnabled = !state.soundEnabled;
-  DOM.btnSound.textContent = state.soundEnabled ? '🔊' : '🔇';
-  if (!state.soundEnabled && window.speechSynthesis) window.speechSynthesis.cancel();
-  if (state.soundEnabled) playClick();
-});
-
-/* ══════════════════════════════════════════════════════════
-   UTILITÁRIOS
-   ══════════════════════════════════════════════════════════ */
-
-function showScreen(name) {
-  Object.values(DOM.screens).forEach(s => s.classList.remove('active'));
-  DOM.screens[name].classList.add('active');
-}
-
-function shuffle(arr) {
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
-}
-
-function getBigEmoji(name) {
-  const map = {
-    Thomas:'👦', Giovana:'👧', Manuella:'👧', Nicolas:'👦',
-    Bianca:'👧', Ester:'👧', Weslay:'👦', Gabriella:'👧',
-    Amanda:'👧', Bernardo:'👦', Pedro:'👦',
-  };
-  return map[name] || '🙂';
-}
-
-/* ══════════════════════════════════════════════════════════
-   RANKING – handlers dos botões
-   ══════════════════════════════════════════════════════════ */
-
-function openRankingModal() {
-  playClick();
-  renderRankingModal();
-  DOM.modalRanking.classList.remove('hidden');
-}
-
-DOM.btnRanking.addEventListener('click', openRankingModal);
-DOM.btnRankingV.addEventListener('click', openRankingModal);
-
-DOM.btnCloseRanking.addEventListener('click', () => {
-  playClick();
-  DOM.modalRanking.classList.add('hidden');
-});
-
-DOM.btnClearRanking.addEventListener('click', () => {
-  if (confirm('Tem certeza que deseja apagar o ranking local deste navegador?\n\nEssa ação não pode ser desfeita.')) {
-    localStorage.removeItem(LS_KEY);
-    renderRankingModal();
-    renderWelcomePodium();
-  }
-});
-
-// Certificado do campeão
-DOM.btnCloseChampCert.addEventListener('click', () => {
-  playClick();
-  DOM.modalChampCert.classList.add('hidden');
-});
-
-DOM.btnPrintChampCert.addEventListener('click', () => {
-  document.body.classList.add('printing-champion');
-  window.print();
-  setTimeout(() => document.body.classList.remove('printing-champion'), 800);
-});
-
-/* ══════════════════════════════════════════════════════════
-   INICIALIZAÇÃO
-   ══════════════════════════════════════════════════════════ */
-
-// Construir grade de botões com os nomes dos alunos
-FRIENDS.forEach(f => {
-  const btn = document.createElement('button');
-  btn.className   = 'student-btn';
-  btn.type        = 'button';
-  btn.textContent = f.name;
-  btn.style.setProperty('--sc', f.color);
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.student-btn').forEach(b => b.classList.remove('selected'));
-    btn.classList.add('selected');
-    DOM.playerName.value    = f.name;
-    DOM.btnPlay.disabled    = false;
-    ensureAudio(); playClick();
-  });
-  DOM.studentGrid.appendChild(btn);
-});
-
-showScreen('welcome');
-renderWelcomePodium();
