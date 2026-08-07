@@ -6,6 +6,10 @@
   <title>English Bus Adventure 🚌 – Escola 25 de Julho</title>
   <!-- favicon emoji inline – sem arquivo externo -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚌</text></svg>">
+  <!-- Tipografia: Baloo 2 (títulos) + Nunito (interface). Requer internet (progressivo). -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;600;700;800;900&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -25,8 +29,8 @@
     <div class="school-badge">🏫 Escola 25 de Julho – Sapiranga/RS</div>
 
     <h1 class="game-title">
-      <span class="title-english">English</span><br>
-      <span class="title-bus">Bus Adventure</span>
+      <span class="title-bus">Ônibus da Turma</span><br>
+      <span class="title-english">English Adventure 🚌</span>
     </h1>
 
     <!-- ônibus decorativo -->
@@ -51,11 +55,9 @@
       <div class="db-exhaust"></div>
     </div>
 
-    <p class="welcome-sub">Aprenda inglês, busque seus colegas e suba no ranking da semana! 🌟</p>
-
     <!-- Seletor de aluno -->
     <div class="student-selector">
-      <p class="selector-label">👋 Quem é você? Escolha seu nome:</p>
+      <p class="selector-label">Escolha seu nome:</p>
       <div class="student-grid" id="student-grid"><!-- gerado pelo JS --></div>
     </div>
     <!-- prévia de nível do aluno selecionado -->
@@ -87,15 +89,15 @@
     <div id="gift-preview-wrap" class="gift-preview-wrap" style="display:none"></div>
 
     <div class="welcome-actions">
-      <button id="btn-play" class="btn-play" disabled>▶ JOGAR!</button>
-      <button id="btn-ranking" class="btn-ranking">📅 Ver Ranking da Semana</button>
+      <button id="btn-play" class="btn-play" disabled>🚌 Jogar</button>
+      <button id="btn-ranking" class="btn-ranking">🏆 Ranking</button>
     </div>
     <div class="welcome-gift-actions" id="welcome-gift-actions" style="display:none">
-      <button id="btn-send-gift-welcome" class="btn-gift-action">🎁 Enviar presente para um colega</button>
-      <button id="btn-my-gifts-welcome"  class="btn-gift-secondary">📬 Meus presentes da semana</button>
+      <button id="btn-send-gift-welcome" class="btn-gift-action">🎁 Mandar presente</button>
+      <button id="btn-my-gifts-welcome"  class="btn-gift-secondary">📬 Presentes</button>
     </div>
 
-    <p class="welcome-goal">🎯 Meta: <strong>100 pontos</strong> · buscar todos os colegas · subir de nível!</p>
+    <p class="welcome-goal">🎯 <strong>100 pontos</strong> · buscar todos os amigos</p>
   </div>
 
   <div class="welcome-ground"></div>
@@ -288,8 +290,8 @@
 <div id="modal-ranking" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="rank-modal-title">
   <div class="modal-box ranking-modal-box">
     <div class="rank-header">
-      <h3 id="rank-modal-title">📅 Ranking da Semana</h3>
-      <p class="rank-subtitle">Escola 25 de Julho · dados salvos neste navegador</p>
+      <h3 id="rank-modal-title">🏆 Ranking da Semana</h3>
+      <p class="rank-subtitle">Escola 25 de Julho</p>
     </div>
     <div id="ranking-content"><!-- preenchido pelo JS --></div>
     <div class="rank-footer">
@@ -339,22 +341,18 @@
 
         <div class="cert-trophy">🏆</div>
 
-        <h2 class="cert-title">Certificate of Achievement</h2>
-        <p class="cert-sub">Certificado de Conquista</p>
+        <h2 class="cert-title">Certificado de Conquista</h2>
+        <p class="cert-sub">English Bus Adventure 🚌</p>
 
         <div class="cert-rule">✦ ✦ ✦ ✦ ✦</div>
 
-        <p class="cert-body-text">
-          This is to certify that /<br>
-          Certificamos que o(a) aluno(a)
-        </p>
+        <p class="cert-body-text">Certificamos que o(a) aluno(a)</p>
 
         <div class="cert-student-name" id="cert-name">_____________</div>
 
         <p class="cert-body-text">
-          successfully completed the<br>
-          <strong>English Bus Adventure</strong> 🚌<br>
-          and brought all friends to school!
+          completou o <strong>Ônibus da Turma</strong><br>
+          e trouxe todos os amigos para a escola!
         </p>
 
         <div class="cert-stats">
@@ -390,10 +388,10 @@
   </div><!-- /certificate -->
 
   <div class="victory-actions">
-    <button class="btn-print" onclick="window.print()">🖨️ Imprimir Certificado</button>
-    <button id="btn-send-gift-victory" class="btn-gift-action">🎁 Enviar presente para um colega</button>
-    <button id="btn-ranking-v" class="btn-ranking victory-rank-btn">📅 Ver Ranking da Semana</button>
-    <button class="btn-replay" id="btn-replay">🔄 Jogar de Novo</button>
+    <button id="btn-send-gift-victory" class="btn-gift-action">🎁 Mandar presente</button>
+    <button class="btn-print" onclick="window.print()">🖨️ Imprimir</button>
+    <button id="btn-ranking-v" class="btn-ranking victory-rank-btn">🏆 Ranking</button>
+    <button class="btn-replay" id="btn-replay">🔄 Jogar de novo</button>
   </div>
 
 </div><!-- /screen-victory -->
@@ -409,8 +407,8 @@
 <div id="modal-send-gift" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="send-gift-modal-title">
   <div class="modal-box gift-modal-box">
     <div class="gift-modal-header">
-      <h3 id="send-gift-modal-title">🎁 Enviar presente para um colega</h3>
-      <p class="gift-modal-sub">Escolha um colega e um presente da zona rural</p>
+      <h3 id="send-gift-modal-title">🎁 Mandar presente</h3>
+      <p class="gift-modal-sub">Escolha um amigo e um presente</p>
     </div>
     <div id="send-gift-content"><!-- preenchido pelo JS --></div>
     <div class="gift-modal-footer">
@@ -426,8 +424,8 @@
 <div id="modal-received-gifts" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="received-gifts-modal-title">
   <div class="modal-box gift-modal-box">
     <div class="gift-modal-header">
-      <h3 id="received-gifts-modal-title">📬 Presentes recebidos</h3>
-      <p class="gift-modal-sub">Escola 25 de Julho · semana atual</p>
+      <h3 id="received-gifts-modal-title">📬 Seus presentes</h3>
+      <p class="gift-modal-sub">Esta semana</p>
     </div>
     <div id="received-gifts-content"><!-- preenchido pelo JS --></div>
     <div class="gift-modal-footer">
