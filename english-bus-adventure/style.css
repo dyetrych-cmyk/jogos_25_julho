@@ -2216,3 +2216,204 @@ body {
   margin-top: 4px;
   font-style: italic;
 }
+
+/* ══════════════════════════════════════════════════════
+   REFINAMENTO VISUAL / MOBILE / PEDAGÓGICO
+   ══════════════════════════════════════════════════════ */
+
+/* ── Nível do aluno (prévia na tela inicial) ────────── */
+.student-level-preview {
+  background: linear-gradient(135deg, #E8F5E9, #F1F8E9);
+  border: 1px solid #A5D6A7;
+  border-radius: 16px;
+  padding: 8px 14px;
+  font-size: .83rem;
+  color: #2E7D32;
+  text-align: center;
+  margin: 6px auto 2px;
+  max-width: 320px;
+  animation: fadeInUp .3s ease;
+}
+.student-level-preview strong { color: #1B5E20; }
+@keyframes fadeInUp {
+  from { opacity:0; transform:translateY(6px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+
+/* ── Teacher hint: card quente ────────────────────── */
+.teacher-hint {
+  background: linear-gradient(135deg, #FFFDE7, #FFF9C4);
+  border: 2px solid #FFD54F;
+  border-radius: 14px;
+  padding: 10px 14px;
+  margin: 8px 0 4px;
+  font-size: .9rem;
+  color: #5D4037;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  flex-wrap: wrap;
+  line-height: 1.5;
+}
+.th-label {
+  font-weight: 700;
+  white-space: nowrap;
+  color: #E65100;
+}
+.th-text {
+  flex: 1;
+  font-style: normal;
+}
+.teacher-hint .speak-inline {
+  flex-shrink: 0;
+  align-self: center;
+}
+
+/* ── Compactar cena/mapa no mobile ─────────────────── */
+@media (max-width: 600px) {
+  #scene            { height: 100px !important; min-height: 100px !important; }
+  #scene-hills      { display: none; }
+  #scene-sky        { height: 45px; }
+  .gc1, .gc2        { transform: scale(.7); }
+  #game-bus         { bottom: 8px; width: 70px !important; height: 40px !important; }
+  .gb-sign          { font-size: .45rem !important; padding: 1px 3px !important; }
+  .gb-body          { height: 28px !important; }
+  .gb-windows       { gap: 3px !important; }
+  .gb-win           { width: 9px !important; height: 9px !important; }
+  #school-end       { right: 4px; bottom: 6px; }
+  .school-emoji     { font-size: 1.4rem !important; }
+  .school-label     { font-size: .5rem !important; }
+  #question-card    { padding: 10px 12px; }
+  #q-emoji          { font-size: 1.6rem !important; }
+  #q-text           { font-size: 1rem !important; }
+  #game-header      { padding: 6px 10px; }
+  #score-val        { font-size: 1.2rem; }
+  #progress-track   { height: 10px; }
+  #friends-bar      { padding: 3px 6px; min-height: 30px; }
+  .friend-icon      { width: 24px !important; height: 24px !important; font-size: .75rem !important; }
+}
+
+/* ── Audio buttons: mais discretos ─────────────────── */
+.answer-audio {
+  width: 44px !important;
+  min-width: 44px !important;
+  background: rgba(255,255,255,.12) !important;
+  border-left: 1px solid rgba(255,255,255,.18) !important;
+  font-size: .8rem !important;
+  opacity: .85;
+  transition: opacity .15s, background .15s !important;
+}
+.answer-audio:hover  { opacity: 1 !important; background: rgba(255,255,255,.25) !important; }
+.answer-audio:active { transform: scale(.9) !important; }
+
+/* Botão de áudio da pergunta - mais discreto */
+#btn-speak-q {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  font-size: .85rem;
+  background: rgba(26,60,114,.08);
+  border: 1.5px solid rgba(26,60,114,.18);
+  border-radius: 50%;
+  opacity: .75;
+}
+#btn-speak-q:hover { opacity: 1; }
+
+/* ── Feedback acerto/erro: visual limpo ─────────────── */
+#answer-result.result-correct { background: linear-gradient(135deg, #E8F5E9, #F1F8E9) !important; border-color: #81C784 !important; }
+#answer-result.result-wrong   { background: linear-gradient(135deg, #FFEBEE, #FFF3F3) !important; border-color: #EF9A9A !important; }
+.ar-title  { font-size: 1.05rem !important; }
+.ar-points { font-size: .88rem !important; font-weight: 700; }
+.ar-friend { font-size: .9rem !important; color: #1565C0; }
+.ar-friend-phrase { font-size: .88rem !important; font-style: italic; color: #4527A0; }
+.ar-correct { font-size: .88rem !important; color: #B71C1C; font-weight: 600; }
+.ar-explanation { font-size: .88rem !important; color: #333; }
+
+/* ── Ranking: cards mobile ──────────────────────────── */
+.rank-table-wrap { overflow-x: auto; }
+.rank-cards { display: none; }
+
+@media (max-width: 560px) {
+  .rank-table-wrap { display: none !important; }
+  .rank-cards      { display: block; }
+  .ranking-modal-box { padding: 14px 12px; }
+}
+
+.rank-card {
+  background: #f8f9ff;
+  border: 2px solid #e0e4f0;
+  border-radius: 14px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.06);
+}
+.rank-card-gold   { background: linear-gradient(135deg, #FFFDE7, #FFF8E1); border-color: #FFD54F; }
+.rank-card-silver { background: linear-gradient(135deg, #FAFAFA, #F5F5F5); border-color: #CFD8DC; }
+.rank-card-bronze { background: linear-gradient(135deg, #FFF8F0, #FFF3E0); border-color: #FFCC80; }
+
+.rc-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.rc-medal { font-size: 1.6rem; line-height: 1; flex-shrink: 0; }
+.rc-info  { display: flex; flex-direction: column; gap: 2px; }
+.rc-name  { font-size: 1rem; font-weight: 800; color: #1A3C72; }
+.rc-level { font-size: .75rem; color: #666; }
+
+.rc-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+.rc-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(255,255,255,.7);
+  border-radius: 8px;
+  padding: 5px 4px 4px;
+  text-align: center;
+}
+.rc-si { font-size: .95rem; }
+.rc-sv { font-size: 1rem;  font-weight: 800; color: #1A3C72; line-height: 1.1; }
+.rc-sl { font-size: .62rem; color: #888; line-height: 1.2; }
+
+/* ── Nível na coluna da tabela ──────────────────────── */
+.rank-level { font-size: 1.1rem; }
+
+/* ── Welcome: texto motivacional melhorado ──────────── */
+.welcome-sub {
+  font-size: .95rem !important;
+  line-height: 1.5 !important;
+  color: #444 !important;
+  padding: 0 8px;
+}
+.welcome-goal {
+  font-size: .82rem !important;
+  color: #777 !important;
+  padding: 0 8px;
+  line-height: 1.5;
+}
+
+/* ── Hierarquia de cor: ações principais ────────────── */
+.btn-play {
+  background: linear-gradient(135deg, #FF6F00, #E65100) !important;
+  box-shadow: 0 4px 14px rgba(230,81,0,.45) !important;
+}
+.btn-play:not(:disabled):hover {
+  box-shadow: 0 6px 18px rgba(230,81,0,.55) !important;
+}
+
+/* ── Mobile: evitar overflow horizontal ────────────── */
+@media (max-width: 480px) {
+  .modal-box { max-width: calc(100vw - 24px) !important; }
+  .ranking-modal-box { max-height: 88vh; }
+  .rank-header h3 { font-size: 1.1rem; }
+  .btn-next-stop { font-size: .88rem !important; padding: 12px 16px !important; }
+  .welcome-actions { gap: 8px; }
+  .welcome-actions .btn-play,
+  .welcome-actions .btn-ranking { font-size: .88rem; padding: 13px 10px; }
+}
