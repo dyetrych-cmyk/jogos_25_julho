@@ -2019,6 +2019,7 @@ const DOM = {
     victory: $('screen-victory'),
   },
   playerName:      $('player-name'),
+  studentGrid:     $('student-grid'),
   btnPlay:         $('btn-play'),
   btnSound:        $('btn-sound'),
   scoreVal:        $('score-val'),
@@ -2118,6 +2119,33 @@ const DOM = {
   gnSubtitle:              $('gn-subtitle'),
   btnGnPlay:               $('btn-gn-play'),
   btnGnView:               $('btn-gn-view'),
+  // área adm
+  btnAdmin:                $('btn-admin'),
+  modalAdminLogin:         $('modal-admin-login'),
+  admPassword:             $('adm-password'),
+  btnAdmLoginSubmit:       $('btn-adm-login-submit'),
+  btnAdmLoginCancel:       $('btn-adm-login-cancel'),
+  admLoginError:           $('adm-login-error'),
+  modalAdminPanel:         $('modal-admin-panel'),
+  btnAdmPanelClose:        $('btn-adm-panel-close'),
+  admWeekLabel:            $('adm-week-label'),
+  admMainSection:          $('adm-main-section'),
+  admStudentsSection:      $('adm-students-section'),
+  admAddSection:           $('adm-add-section'),
+  admStudentsList:         $('adm-students-list'),
+  btnAdmStudents:          $('btn-adm-students'),
+  btnAdmAddStudent:        $('btn-adm-add-student'),
+  btnAdmResetScores:       $('btn-adm-reset-scores'),
+  btnAdmResetGifts:        $('btn-adm-reset-gifts'),
+  btnAdmResetAll:          $('btn-adm-reset-all'),
+  admActionFeedback:       $('adm-action-feedback'),
+  btnAdmBackStudents:      $('btn-adm-back-students'),
+  btnAdmBackAdd:           $('btn-adm-back-add'),
+  admNewName:              $('adm-new-name'),
+  admNewCode:              $('adm-new-code'),
+  admAddError:             $('adm-add-error'),
+  admAddSuccess:           $('adm-add-success'),
+  btnAdmSaveStudent:       $('btn-adm-save-student'),
 };
 
 /* ══════════════════════════════════════════════════════════
@@ -3137,6 +3165,489 @@ DOM.btnPrintChampCert.addEventListener('click', () => {
   setTimeout(() => document.body.classList.remove('printing-champion'), 800);
 });
 
+/* ══════════════════════════════════════════════════════════
+   ÁREA ADMINISTRATIVA – PROFESSORA
+   ──────────────────────────────────────────────────────────
+   Área ADM simples para piloto escolar.
+   A senha não fica no JavaScript como única segurança.
+   As ações administrativas são validadas por funções RPC
+   no Supabase (SECURITY DEFINER), que verificam o código
+   admin_code no servidor.
+   Em versão futura, usar autenticação real (Supabase Auth).
+   ══════════════════════════════════════════════════════════ */
+
+/** Estado da sessão administrativa (apenas em memória — limpo ao recarregar). */
+let adminSession = { authenticated: false, password: '' };
+
+/** Abre o modal de login administrativo. */
+function openAdminLogin() {
+  DOM.admPassword.value = '';
+  hideElem(DOM.admLoginError);
+  DOM.modalAdminLogin.classList.remove('hidden');
+  setTimeout(() => DOM.admPassword.focus(), 100);
+}
+
+/** Esconde elemento com display:none. */
+function hideElem(el) { if (el) el.style.display = 'none'; }
+function showElem(el, d = 'block') { if (el) el.style.display = d; }
+
+/** Valida senha via RPC do Supabase (admin_code não está no JS). */
+async function validateAdminAndOpenPanel() {
+  const pwd = DOM.admPassword.value.trim();
+  if (!pwd) {
+    showElem(DOM.admLoginError);
+    DOM.admLoginError.textContent = 'Digite a senha.';
+    return;
+  }
+  hideElem(DOM.admLoginError);
+  DOM.btnAdmLoginSubmit.disabled = true;
+  DOM.btnAdmLoginSubmit.textContent = '⏳ Verificando...';
+
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/admin_validate_code`, {
+      method: 'POST',
+      headers: {
+        apikey: SUPABASE_KEY,
+        Authorization: `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ p_admin_code: pwd }),
+    });
+    const valid = res.ok ? await res.json() : false;
+
+    if (valid === true) {
+      adminSession = { authenticated: true, password: pwd };
+      DOM.modalAdminLogin.classList.add('hidden');
+      renderAdminPanel();
+    } else {
+      showElem(DOM.admLoginError);
+      DOM.admLoginError.textContent = 'Senha incorreta.';
+    }
+  } catch (e) {
+    showElem(DOM.admLoginError);
+    DOM.admLoginError.textContent = 'Erro ao conectar. Verifique a internet.';
+    console.warn('ADM login error:', e);
+  } finally {
+    DOM.btnAdmLoginSubmit.disabled = false;
+    DOM.btnAdmLoginSubmit.textContent = 'Entrar';
+  }
+}
+
+/** Renderiza/abre o painel ADM (requer sessão autenticada). */
+function renderAdminPanel() {
+  if (!adminSession.authenticated) { openAdminLogin(); return; }
+
+  // Semana atual
+  const { startDate, endDate } = getWeekRange(Date.now());
+  if (DOM.admWeekLabel) {
+    DOM.admWeekLabel.textContent =
+      `Semana atual: ${fmtDateBR(startDate)} a ${fmtDateBR(endDate)}`;
+  }
+
+  // Mostrar seção principal, ocultar sub-seções
+  showAdmSection('main');
+  hideElem(DOM.admActionFeedback);
+
+  DOM.modalAdminPanel.classList.remove('hidden');
+}
+
+/** Alterna qual sub-seção do painel ADM está visível. */
+function showAdmSection(which) {
+  ['main','students','add'].forEach(s => {
+    const el = DOM[`adm${s.charAt(0).toUpperCase()+s.slice(1)}Section`]
+            || document.getElementById(`adm-${s}-section`);
+    if (el) el.classList.add('hidden');
+  });
+  const target = document.getElementById(`adm-${which}-section`);
+  if (target) target.classList.remove('hidden');
+}
+
+/** Exibe mensagem de feedback no painel (ok ou err). */
+function admFeedback(msg, type = 'ok') {
+  const el = DOM.admActionFeedback;
+  if (!el) return;
+  el.textContent = msg;
+  el.className   = `adm-feedback ${type}`;
+  showElem(el);
+  if (type === 'ok') setTimeout(() => hideElem(el), 4000);
+}
+
+/* ─── Buscar alunos ──────────────────────────────────────── */
+
+/**
+ * Busca lista de alunos na tabela public.students do Supabase.
+ * Retorna array de { name, access_code, active } ou null se falhar.
+ */
+async function fetchStudentsOnline() {
+  try {
+    const url = `${SUPABASE_URL}/rest/v1/students`
+      + `?select=id,name,access_code,active&order=name.asc`;
+    const res = await fetch(url, {
+      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` },
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (e) {
+    console.warn('ADM: erro ao buscar alunos:', e);
+    return null;
+  }
+}
+
+/** Renderiza a lista de alunos no painel ADM. */
+async function renderStudentsList() {
+  showAdmSection('students');
+  const list = DOM.admStudentsList;
+  if (!list) return;
+  list.innerHTML = '<div class="adm-loading">⏳ Carregando alunos...</div>';
+
+  const rows = await fetchStudentsOnline();
+
+  if (!rows) {
+    // fallback: usar dados hardcoded do jogo
+    const fallback = Object.entries(studentCodes).map(([name, code]) => ({
+      name, access_code: code, active: true,
+    }));
+    list.innerHTML = `
+      <div class="adm-error" style="display:block;margin-bottom:8px">
+        Tabela <em>students</em> ainda não configurada no Supabase.<br>Exibindo dados locais.
+      </div>` + fallback.map(s => buildStudentRow(s, true)).join('');
+    return;
+  }
+
+  if (!rows.length) {
+    list.innerHTML = '<div class="adm-loading">Nenhum aluno cadastrado.</div>';
+    return;
+  }
+
+  list.innerHTML = rows.map(s => buildStudentRow(s)).join('');
+
+  // Ligar botões de desativar
+  list.querySelectorAll('.btn-adm-deactivate').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const name = btn.dataset.name;
+      if (confirm(`Desativar o aluno "${name}"?\n\nO histórico será preservado.`)) {
+        adminDeactivateStudent(name);
+      }
+    });
+  });
+}
+
+function buildStudentRow(s, readOnly = false) {
+  const isActive = s.active !== false;
+  const statusLabel = isActive
+    ? '<span class="adm-student-status active">Ativo</span>'
+    : '<span class="adm-student-status inactive-badge">Inativo</span>';
+  const deactivateBtn = isActive && !readOnly
+    ? `<button class="btn-adm-deactivate" data-name="${s.name}">Desativar</button>`
+    : '';
+  return `
+    <div class="adm-student-row${isActive ? '' : ' inactive'}">
+      <div class="adm-student-info">
+        <div class="adm-student-name">${s.name}</div>
+        <div class="adm-student-code">Código: ${s.access_code}</div>
+      </div>
+      ${statusLabel}
+      ${deactivateBtn}
+    </div>`;
+}
+
+/* ─── Adicionar aluno ────────────────────────────────────── */
+
+async function adminAddStudent() {
+  const name = (DOM.admNewName.value || '').trim();
+  const code = (DOM.admNewCode.value || '').trim();
+
+  hideElem(DOM.admAddError);
+  hideElem(DOM.admAddSuccess);
+
+  if (!name) {
+    showElem(DOM.admAddError);
+    DOM.admAddError.textContent = 'Nome obrigatório.';
+    return;
+  }
+  if (!/^\d{2}$/.test(code)) {
+    showElem(DOM.admAddError);
+    DOM.admAddError.textContent = 'O código deve ter exatamente 2 dígitos.';
+    return;
+  }
+
+  DOM.btnAdmSaveStudent.disabled = true;
+  DOM.btnAdmSaveStudent.textContent = '⏳ Salvando...';
+
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/admin_add_student`, {
+      method: 'POST',
+      headers: {
+        apikey: SUPABASE_KEY,
+        Authorization: `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ p_admin_code: adminSession.password, p_name: name, p_access_code: code }),
+    });
+    const result = res.ok ? await res.json() : { success: false, error: 'Erro de conexão' };
+
+    if (result && result.success) {
+      showElem(DOM.admAddSuccess);
+      DOM.admAddSuccess.textContent = `✅ Aluno "${name}" adicionado com sucesso!`;
+      DOM.admNewName.value = '';
+      DOM.admNewCode.value = '';
+      // Atualizar lista dinâmica do seletor de alunos
+      await refreshStudentSelector();
+    } else {
+      showElem(DOM.admAddError);
+      DOM.admAddError.textContent = result.error || 'Erro ao salvar aluno.';
+    }
+  } catch (e) {
+    showElem(DOM.admAddError);
+    DOM.admAddError.textContent = 'Erro ao conectar ao servidor.';
+    console.warn('ADM add student error:', e);
+  } finally {
+    DOM.btnAdmSaveStudent.disabled = false;
+    DOM.btnAdmSaveStudent.textContent = '💾 Salvar aluno';
+  }
+}
+
+/* ─── Desativar aluno ────────────────────────────────────── */
+
+async function adminDeactivateStudent(name) {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/admin_deactivate_student`, {
+      method: 'POST',
+      headers: {
+        apikey: SUPABASE_KEY,
+        Authorization: `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ p_admin_code: adminSession.password, p_name: name }),
+    });
+    const result = res.ok ? await res.json() : { success: false };
+    if (result && result.success) {
+      admFeedback(`✅ Aluno "${name}" desativado.`);
+      await refreshStudentSelector();
+      renderStudentsList(); // atualizar a lista exibida
+    } else {
+      admFeedback(`Erro ao desativar "${name}".`, 'err');
+    }
+  } catch (e) {
+    admFeedback('Erro ao conectar ao servidor.', 'err');
+    console.warn('ADM deactivate error:', e);
+  }
+}
+
+/* ─── Resetar ranking da semana ─────────────────────────── */
+
+async function adminResetWeekScores() {
+  if (!confirm('Tem certeza que deseja apagar o ranking desta semana?\n\nIsso não pode ser desfeito.')) return;
+  const weekId = getWeekId(Date.now());
+  showAdmSection('main');
+  admFeedback('⏳ Resetando ranking...', 'ok');
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/admin_reset_week_scores`, {
+      method: 'POST',
+      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ p_admin_code: adminSession.password, p_week_id: weekId }),
+    });
+    const result = res.ok ? await res.json() : { success: false };
+    if (result && result.success) {
+      // Limpar também o localStorage da semana
+      const lsGames = JSON.parse(localStorage.getItem(LS_KEY) || '[]');
+      localStorage.setItem(LS_KEY, JSON.stringify(lsGames.filter(g => g.weekId !== weekId)));
+      admFeedback('✅ Ranking da semana apagado!');
+      renderWelcomePodium();
+    } else {
+      admFeedback(result.error || 'Erro ao resetar ranking.', 'err');
+    }
+  } catch (e) {
+    admFeedback('Erro ao conectar ao servidor.', 'err');
+    console.warn('ADM reset scores error:', e);
+  }
+}
+
+/* ─── Resetar presentes da semana ───────────────────────── */
+
+async function adminResetWeekGifts() {
+  if (!confirm('Tem certeza que deseja apagar os presentes desta semana?')) return;
+  const weekId = getWeekId(Date.now());
+  showAdmSection('main');
+  admFeedback('⏳ Resetando presentes...', 'ok');
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/admin_reset_week_gifts`, {
+      method: 'POST',
+      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ p_admin_code: adminSession.password, p_week_id: weekId }),
+    });
+    const result = res.ok ? await res.json() : { success: false };
+    if (result && result.success) {
+      // Limpar gifts locais da semana
+      localStorage.removeItem(`${LS_GIFTS_KEY}_${weekId}`);
+      admFeedback('✅ Presentes da semana apagados!');
+    } else {
+      admFeedback(result.error || 'Erro ao resetar presentes.', 'err');
+    }
+  } catch (e) {
+    admFeedback('Erro ao conectar ao servidor.', 'err');
+    console.warn('ADM reset gifts error:', e);
+  }
+}
+
+/* ─── Resetar tudo da semana ─────────────────────────────── */
+
+async function adminResetWeekAll() {
+  if (!confirm('ATENÇÃO!\n\nIsso apagará o ranking E os presentes desta semana.\n\nTem certeza?')) return;
+  const weekId = getWeekId(Date.now());
+  showAdmSection('main');
+  admFeedback('⏳ Resetando tudo...', 'ok');
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/admin_reset_week_all`, {
+      method: 'POST',
+      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ p_admin_code: adminSession.password, p_week_id: weekId }),
+    });
+    const result = res.ok ? await res.json() : { success: false };
+    if (result && result.success) {
+      const lsGames = JSON.parse(localStorage.getItem(LS_KEY) || '[]');
+      localStorage.setItem(LS_KEY, JSON.stringify(lsGames.filter(g => g.weekId !== weekId)));
+      localStorage.removeItem(`${LS_GIFTS_KEY}_${weekId}`);
+      admFeedback('✅ Ranking e presentes da semana apagados!');
+      renderWelcomePodium();
+    } else {
+      admFeedback(result.error || 'Erro ao resetar.', 'err');
+    }
+  } catch (e) {
+    admFeedback('Erro ao conectar ao servidor.', 'err');
+    console.warn('ADM reset all error:', e);
+  }
+}
+
+/* ─── Atualizar seletor de alunos dinamicamente ─────────── */
+
+/**
+ * Busca alunos ativos do Supabase e recarrega o seletor de alunos
+ * na tela inicial, além de atualizar studentCodes e FRIENDS.
+ */
+async function refreshStudentSelector() {
+  const rows = await fetchStudentsOnline();
+  if (!rows) return; // manter dados locais
+
+  const activeRows = rows.filter(r => r.active !== false);
+  if (!activeRows.length) return;
+
+  // Atualizar studentCodes em memória
+  activeRows.forEach(r => { studentCodes[r.name] = r.access_code; });
+  // Remover alunos desativados do studentCodes
+  rows.filter(r => r.active === false).forEach(r => { delete studentCodes[r.name]; });
+
+  // Atualizar FRIENDS (preservar color e initial se já existir)
+  const COLORS = ['#FF6B6B','#4ECDC4','#45B7D1','#96CEB4','#FECA57','#FF9FF3','#54A0FF','#5F27CD','#00D2D3','#FF9F43','#1DD1A1'];
+  FRIENDS.length = 0; // limpar array preservando a referência
+  activeRows.forEach((r, i) => {
+    FRIENDS.push({
+      name:    r.name,
+      initial: r.name.charAt(0),
+      color:   COLORS[i % COLORS.length],
+    });
+  });
+
+  // Re-renderizar a grade de alunos na tela inicial
+  rebuildStudentGrid();
+}
+
+/** Reconstrói a grade de botões de seleção de aluno na tela inicial. */
+function rebuildStudentGrid() {
+  const grid = DOM.studentGrid;
+  if (!grid) return;
+  grid.innerHTML = '';
+
+  // Resetar seleção corrente
+  DOM.playerName.value = '';
+  DOM.btnPlay.disabled = true;
+  hideElem(DOM.secretCodeWrap);
+  hideElem(DOM.welcomeGiftActions);
+
+  FRIENDS.forEach(f => {
+    const btn = document.createElement('button');
+    btn.className   = 'student-btn';
+    btn.type        = 'button';
+    btn.textContent = f.name;
+    btn.style.setProperty('--sc', f.color);
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.student-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      DOM.playerName.value = f.name;
+      DOM.btnPlay.disabled = true;
+      ensureAudio(); playClick();
+
+      // Resetar estado do código ao trocar de aluno
+      codeWrongAttempts = 0;
+      if (DOM.secretCodeInput)  { DOM.secretCodeInput.value = ''; }
+      if (DOM.secretCodeError)  { DOM.secretCodeError.style.display = 'none'; }
+      if (DOM.secretCodeLabel)  {
+        DOM.secretCodeLabel.textContent = `🔐 Olá, ${f.name}! Digite seu código secreto:`;
+      }
+      if (DOM.secretCodeWrap)   { DOM.secretCodeWrap.style.display = 'block'; }
+
+      // Ocultar botões de presentes até novo código válido
+      hideElem(DOM.welcomeGiftActions);
+      hideElem(DOM.giftPreviewWrap);
+
+      // Focar no campo de código automaticamente
+      setTimeout(() => { if (DOM.secretCodeInput) DOM.secretCodeInput.focus(); }, 120);
+
+      // Mostrar nível do aluno
+      const levelPreviewEl = document.getElementById('student-level-preview');
+      if (levelPreviewEl) {
+        const localRanking = getLocalWeekRanking();
+        const entry = localRanking.find(r => r.studentName === f.name);
+        const pts   = entry ? entry.totalScore : 0;
+        const lv    = getWeeklyLevel(pts);
+        levelPreviewEl.innerHTML = pts > 0
+          ? `${lv.emoji} <strong>${f.name}</strong> · ${lv.name} · ${pts} pts esta semana`
+          : `${lv.emoji} <strong>${f.name}</strong> · ${lv.name} · Primeira vez? Bora jogar!`;
+        levelPreviewEl.style.display = 'block';
+      }
+    });
+    grid.appendChild(btn);
+  });
+}
+
+/* ─── Event listeners ADM ────────────────────────────────── */
+
+DOM.btnAdmin && DOM.btnAdmin.addEventListener('click', () => openAdminLogin());
+
+DOM.btnAdmLoginCancel && DOM.btnAdmLoginCancel.addEventListener('click', () => {
+  DOM.modalAdminLogin.classList.add('hidden');
+});
+
+DOM.btnAdmLoginSubmit && DOM.btnAdmLoginSubmit.addEventListener('click', () => {
+  validateAdminAndOpenPanel();
+});
+
+DOM.admPassword && DOM.admPassword.addEventListener('keydown', e => {
+  if (e.key === 'Enter') validateAdminAndOpenPanel();
+});
+
+DOM.btnAdmPanelClose && DOM.btnAdmPanelClose.addEventListener('click', () => {
+  DOM.modalAdminPanel.classList.add('hidden');
+  adminSession = { authenticated: false, password: '' }; // encerrar sessão ao fechar
+});
+
+DOM.btnAdmStudents    && DOM.btnAdmStudents.addEventListener('click',    () => renderStudentsList());
+DOM.btnAdmAddStudent  && DOM.btnAdmAddStudent.addEventListener('click',  () => showAdmSection('add'));
+DOM.btnAdmResetScores && DOM.btnAdmResetScores.addEventListener('click', () => adminResetWeekScores());
+DOM.btnAdmResetGifts  && DOM.btnAdmResetGifts.addEventListener('click',  () => adminResetWeekGifts());
+DOM.btnAdmResetAll    && DOM.btnAdmResetAll.addEventListener('click',    () => adminResetWeekAll());
+DOM.btnAdmBackStudents && DOM.btnAdmBackStudents.addEventListener('click', () => showAdmSection('main'));
+DOM.btnAdmBackAdd      && DOM.btnAdmBackAdd.addEventListener('click',     () => showAdmSection('main'));
+DOM.btnAdmSaveStudent  && DOM.btnAdmSaveStudent.addEventListener('click', () => adminAddStudent());
+
+// Fechar modal ADM clicando no fundo
+DOM.modalAdminPanel && DOM.modalAdminPanel.addEventListener('click', e => {
+  if (e.target === DOM.modalAdminPanel) {
+    DOM.modalAdminPanel.classList.add('hidden');
+    adminSession = { authenticated: false, password: '' };
+  }
+});
+
 /* ── Presentes da turma – event listeners ───────────────── */
 DOM.btnSendGiftWelcome  && DOM.btnSendGiftWelcome.addEventListener('click',  () => { ensureAudio(); playClick(); openSendGiftModal(); });
 DOM.btnMyGiftsWelcome   && DOM.btnMyGiftsWelcome.addEventListener('click',   () => { ensureAudio(); playClick(); openReceivedGiftsModal(); });
@@ -3158,52 +3669,21 @@ DOM.modalReceivedGifts && DOM.modalReceivedGifts.addEventListener('click', e => 
    INICIALIZAÇÃO
    ══════════════════════════════════════════════════════════ */
 
-// Construir grade de botões com os nomes dos alunos
-const levelPreviewEl = document.getElementById('student-level-preview');
-
-FRIENDS.forEach(f => {
-  const btn = document.createElement('button');
-  btn.className   = 'student-btn';
-  btn.type        = 'button';
-  btn.textContent = f.name;
-  btn.style.setProperty('--sc', f.color);
-  btn.addEventListener('click', async () => {
-    document.querySelectorAll('.student-btn').forEach(b => b.classList.remove('selected'));
-    btn.classList.add('selected');
-    DOM.playerName.value = f.name;
-    // O botão JOGAR só fica ativo após código correto; deixamos desabilitado por enquanto
-    DOM.btnPlay.disabled = true;
-    ensureAudio(); playClick();
-
-    // Resetar estado do código ao trocar de aluno
-    codeWrongAttempts = 0;
-    if (DOM.secretCodeInput)  { DOM.secretCodeInput.value = ''; }
-    if (DOM.secretCodeError)  { DOM.secretCodeError.style.display = 'none'; }
-    if (DOM.secretCodeLabel)  {
-      DOM.secretCodeLabel.textContent = `🔐 Olá, ${f.name}! Digite seu código secreto:`;
-    }
-    if (DOM.secretCodeWrap)   { DOM.secretCodeWrap.style.display = 'block'; }
-    // Ocultar botões de presentes até novo código válido
-    if (DOM.welcomeGiftActions) DOM.welcomeGiftActions.style.display = 'none';
-    if (DOM.giftPreviewWrap)    DOM.giftPreviewWrap.style.display    = 'none';
-
-    // Focar no campo de código automaticamente
-    setTimeout(() => { if (DOM.secretCodeInput) DOM.secretCodeInput.focus(); }, 120);
-
-    // Mostrar nível do aluno
-    if (levelPreviewEl) {
-      const localRanking = getLocalWeekRanking();
-      const entry = localRanking.find(r => r.studentName === f.name);
-      const pts   = entry ? entry.totalScore : 0;
-      const lv    = getWeeklyLevel(pts);
-      levelPreviewEl.innerHTML = pts > 0
-        ? `${lv.emoji} <strong>${f.name}</strong> · ${lv.name} · ${pts} pts esta semana`
-        : `${lv.emoji} <strong>${f.name}</strong> · ${lv.name} · Primeira vez? Bora jogar!`;
-      levelPreviewEl.style.display = 'block';
-    }
-  });
-  DOM.studentGrid.appendChild(btn);
-});
+// Construir a grade inicial com dados locais (FRIENDS hardcoded)
+rebuildStudentGrid();
 
 showScreen('welcome');
 renderWelcomePodium();
+
+// Em paralelo, tentar carregar alunos do Supabase (tabela public.students)
+// Se existir e retornar dados, recarrega a grade dinamicamente
+(async () => {
+  try {
+    const rows = await fetchStudentsOnline();
+    if (rows && rows.length > 0) {
+      const COLORS = ['#FF6B6B','#4ECDC4','#45B7D1','#96CEB4','#FECA57','#FF9FF3',
+                      '#54A0FF','#5F27CD','#00D2D3','#FF9F43','#1DD1A1'];
+      const active = rows.filter(r => r.active !== false);
+      if (active.length > 0) {
+        // Atualizar FRIENDS e studentCodes a partir do Supabase
+        FRIENDS.length = 0;
