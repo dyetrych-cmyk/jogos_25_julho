@@ -63,12 +63,36 @@
     <!-- valor do aluno selecionado (preenchido via JS) -->
     <input type="hidden" id="player-name" value="" />
 
+    <!-- Campo de código secreto (aparece após escolher o nome) -->
+    <div id="secret-code-wrap" class="secret-code-wrap" style="display:none">
+      <p id="secret-code-label" class="secret-code-label">🔐 Digite seu código secreto:</p>
+      <div class="secret-code-row">
+        <input id="secret-code-input"
+               type="password"
+               inputmode="numeric"
+               pattern="[0-9]*"
+               maxlength="2"
+               autocomplete="off"
+               placeholder="••"
+               class="secret-code-input"
+               aria-label="Código secreto de 2 dígitos" />
+      </div>
+      <p id="secret-code-error" class="secret-code-error" style="display:none"></p>
+    </div>
+
     <!-- Pódio da semana (top 3) -->
     <div id="welcome-podium" class="welcome-podium-wrap"></div>
+
+    <!-- Prévia de presentes (aparece quando aluno selecionado) -->
+    <div id="gift-preview-wrap" class="gift-preview-wrap" style="display:none"></div>
 
     <div class="welcome-actions">
       <button id="btn-play" class="btn-play" disabled>▶ JOGAR!</button>
       <button id="btn-ranking" class="btn-ranking">📅 Ver Ranking da Semana</button>
+    </div>
+    <div class="welcome-gift-actions" id="welcome-gift-actions" style="display:none">
+      <button id="btn-send-gift-welcome" class="btn-gift-action">🎁 Enviar presente para um colega</button>
+      <button id="btn-my-gifts-welcome"  class="btn-gift-secondary">📬 Meus presentes da semana</button>
     </div>
 
     <p class="welcome-goal">🎯 Meta: <strong>100 pontos</strong> · buscar todos os colegas · subir de nível!</p>
@@ -367,6 +391,7 @@
 
   <div class="victory-actions">
     <button class="btn-print" onclick="window.print()">🖨️ Imprimir Certificado</button>
+    <button id="btn-send-gift-victory" class="btn-gift-action">🎁 Enviar presente para um colega</button>
     <button id="btn-ranking-v" class="btn-ranking victory-rank-btn">📅 Ver Ranking da Semana</button>
     <button class="btn-replay" id="btn-replay">🔄 Jogar de Novo</button>
   </div>
@@ -376,6 +401,41 @@
 
 <!-- Toast de status do envio online (visível brevemente após terminar partida) -->
 <div id="online-status" class="online-toast" aria-live="polite" style="display:none"></div>
+
+
+<!-- ══════════════════════════════════════════════
+     MODAL – ENVIAR PRESENTE
+     ══════════════════════════════════════════════ -->
+<div id="modal-send-gift" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="send-gift-modal-title">
+  <div class="modal-box gift-modal-box">
+    <div class="gift-modal-header">
+      <h3 id="send-gift-modal-title">🎁 Enviar presente para um colega</h3>
+      <p class="gift-modal-sub">Escolha um colega e um presente da zona rural</p>
+    </div>
+    <div id="send-gift-content"><!-- preenchido pelo JS --></div>
+    <div class="gift-modal-footer">
+      <button id="btn-close-send-gift" class="btn-continue">✕ Fechar</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════
+     MODAL – PRESENTES RECEBIDOS
+     ══════════════════════════════════════════════ -->
+<div id="modal-received-gifts" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="received-gifts-modal-title">
+  <div class="modal-box gift-modal-box">
+    <div class="gift-modal-header">
+      <h3 id="received-gifts-modal-title">📬 Presentes recebidos</h3>
+      <p class="gift-modal-sub">Escola 25 de Julho · semana atual</p>
+    </div>
+    <div id="received-gifts-content"><!-- preenchido pelo JS --></div>
+    <div class="gift-modal-footer">
+      <button id="btn-close-received-gifts" class="btn-continue">✕ Fechar</button>
+    </div>
+  </div>
+</div>
+
 
 <script src="script.js"></script>
 </body>
