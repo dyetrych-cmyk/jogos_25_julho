@@ -1,4 +1,5 @@
-  English Bus Adventure – Lógica do Jogo
+/* ============================================================
+   English Bus Adventure – Lógica do Jogo
    Escola 25 de Julho · Sapiranga / RS
    ============================================================ */
 'use strict';
@@ -912,6 +913,384 @@ const state = {
 const WRONG_PENALTY  = 3;
 const TEACHER_NAME   = 'Ana'; // Nome da professora (altere conforme necessário)
 
+/*
+ * Validação simples para uso escolar.
+ * Em versão futura, usar autenticação mais segura no servidor.
+ *
+ * Para alterar os códigos: edite os valores abaixo.
+ * Os códigos NÃO são registrados no ranking nem enviados ao Supabase.
+ */
+const studentCodes = {
+  Thomas:    '27',
+  Giovana:   '64',
+  Manuella:  '38',
+  Nicolas:   '91',
+  Bianca:    '52',
+  Ester:     '76',
+  Weslay:    '43',
+  Gabriella: '85',
+  Amanda:    '19',
+  Bernardo:  '70',
+  Pedro:     '31',
+};
+
+// Contador de tentativas erradas consecutivas por sessão
+let codeWrongAttempts = 0;
+
+/* ══════════════════════════════════════════════════════════
+   PRESENTES DA TURMA
+   ──────────────────────────────────────────────────────────
+   Esta funcionalidade não permite texto livre.
+   As crianças só podem enviar presentes pré-definidos,
+   para manter a interação segura e positiva.
+   ══════════════════════════════════════════════════════════ */
+
+const GIFTS = [
+  { id:'heart',   name:'Coração',     emoji:'❤️',  english:'heart'      },
+  { id:'corn',    name:'Milho',       emoji:'🌽',  english:'corn'       },
+  { id:'eggs',    name:'Ovos',        emoji:'🥚',  english:'eggs'       },
+  { id:'chicken', name:'Galinha',     emoji:'🐔',  english:'chicken'    },
+  { id:'cow',     name:'Vaquinha',    emoji:'🐄',  english:'cow'        },
+  { id:'rabbit',  name:'Coelho',      emoji:'🐇',  english:'rabbit'     },
+  { id:'cheese',  name:'Queijo',      emoji:'🧀',  english:'cheese'     },
+  { id:'cuca',    name:'Cuca',        emoji:'🍰',  english:'sweet cake' },
+  { id:'milk',    name:'Leite',       emoji:'🥛',  english:'milk'       },
+  { id:'tractor', name:'Trator',      emoji:'🚜',  english:'tractor'    },
+  { id:'flower',  name:'Flor',        emoji:'🌻',  english:'flower'     },
+  { id:'apple',   name:'Maçã',        emoji:'🍎',  english:'apple'      },
+  { id:'banana',  name:'Banana',      emoji:'🍌',  english:'banana'     },
+  { id:'bee',     name:'Abelha',      emoji:'🐝',  english:'bee'        },
+  { id:'quail',   name:'Codorna',     emoji:'🐦',  english:'quail'      },
+  { id:'calf',    name:'Bezerro',     emoji:'🐮',  english:'calf'       },
+  { id:'bread',   name:'Pão caseiro', emoji:'🍞',  english:'bread'      },
+];
+
+const LS_GIFTS_KEY  = 'eba_gifts_v1';        // presentes locais (fallback)
+const DAILY_MAX_GIFTS = 3;                   // limite de envios por dia
+
+/* Retorna a chave do dia para contagem de envios diários */
+function dailyGiftKey(studentName) {
+  const d = new Date();
+  const ymd = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  return `englishBusGiftsSent_${ymd}_${studentName}`;
+}
+
+/** Quantos presentes o aluno já enviou hoje (localStorage). */
+function getDailyGiftCount(studentName) {
+  return parseInt(localStorage.getItem(dailyGiftKey(studentName)) || '0', 10);
+}
+
+/** Incrementa contador diário de presentes enviados. */
+function incrementDailyGift(studentName) {
+  const key = dailyGiftKey(studentName);
+  const cur = getDailyGiftCount(studentName);
+  localStorage.setItem(key, String(cur + 1));
+}
+
+/* ── Persistência local de presentes (fallback) ─────────── */
+
+function saveGiftLocal(giftData) {
+  const all = JSON.parse(localStorage.getItem(LS_GIFTS_KEY) || '[]');
+  all.push({ ...giftData, created_at: new Date().toISOString() });
+  localStorage.setItem(LS_GIFTS_KEY, JSON.stringify(all));
+}
+
+function getReceivedGiftsLocal(studentName) {
+  const weekId = getWeekId(Date.now());
+  return JSON.parse(localStorage.getItem(LS_GIFTS_KEY) || '[]')
+    .filter(g => g.to_student === studentName && g.week_id === weekId)
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+}
+
+function getWeeklyGiftsLocal() {
+  const weekId = getWeekId(Date.now());
+  return JSON.parse(localStorage.getItem(LS_GIFTS_KEY) || '[]')
+    .filter(g => g.week_id === weekId);
+}
+
+/* ── Supabase – presentes ────────────────────────────────── */
+
+async function sendGiftOnline(giftData) {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/student_gifts`, {
+      method: 'POST',
+      headers: SUPA_HDR,
+      body: JSON.stringify({
+        from_student: giftData.from_student,
+        to_student:   giftData.to_student,
+        gift_id:      giftData.gift_id,
+        gift_name:    giftData.gift_name,
+        gift_emoji:   giftData.gift_emoji,
+        week_id:      giftData.week_id,
+      }),
+    });
+    if (!res.ok) { console.warn('Erro ao enviar presente online:', res.status); return false; }
+    return true;
+  } catch (e) {
+    console.warn('Erro ao enviar presente online:', e);
+    return false;
+  }
+}
+
+async function fetchReceivedGiftsOnline(studentName) {
+  try {
+    const weekId = getWeekId(Date.now());
+    const url = `${SUPABASE_URL}/rest/v1/student_gifts`
+      + `?to_student=eq.${encodeURIComponent(studentName)}`
+      + `&week_id=eq.${encodeURIComponent(weekId)}`
+      + `&select=from_student,to_student,gift_id,gift_name,gift_emoji,created_at,week_id`
+      + `&order=created_at.desc`;
+    const res = await fetch(url, { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (e) {
+    console.warn('Erro ao buscar presentes online:', e);
+    return null;
+  }
+}
+
+async function fetchWeeklyGiftsOnline() {
+  try {
+    const weekId = getWeekId(Date.now());
+    const url = `${SUPABASE_URL}/rest/v1/student_gifts`
+      + `?week_id=eq.${encodeURIComponent(weekId)}`
+      + `&select=from_student,to_student,gift_id,gift_name,gift_emoji,created_at,week_id`
+      + `&order=created_at.desc`;
+    const res = await fetch(url, { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (e) {
+    console.warn('Erro ao buscar presentes da semana online:', e);
+    return null;
+  }
+}
+
+/* ── Modal: Enviar presente ─────────────────────────────── */
+
+// Estado interno do modal de presente
+let giftState = { selectedRecipient: null, selectedGift: null };
+
+function openSendGiftModal() {
+  const sender = state.playerName || DOM.playerName.value.trim();
+  const modal  = DOM.modalSendGift;
+  if (!modal) return;
+
+  if (!sender) {
+    alert('Escolha seu nome e digite seu código secreto para enviar presentes.');
+    return;
+  }
+
+  giftState = { selectedRecipient: null, selectedGift: null };
+  renderSendGiftModal(sender);
+  modal.classList.remove('hidden');
+}
+
+function renderSendGiftModal(sender) {
+  const content = DOM.sendGiftContent;
+  if (!content) return;
+
+  const dailyCount = getDailyGiftCount(sender);
+  const limitReached = dailyCount >= DAILY_MAX_GIFTS;
+
+  content.innerHTML = `
+    <div class="gift-sender-tag">🎁 Enviando como: <strong>${sender}</strong></div>
+    <div class="gift-daily-counter">Presentes de hoje: <strong>${dailyCount}/${DAILY_MAX_GIFTS}</strong></div>
+    ${limitReached ? `<div class="gift-limit-msg">Você já enviou seus ${DAILY_MAX_GIFTS} presentes de hoje. Volte amanhã para espalhar mais carinho! 🌻</div>` : ''}
+
+    <div class="gift-section-title">1. Escolha um colega:</div>
+    <div class="gift-recipients" id="gift-recipients">
+      ${FRIENDS.map(f => `
+        <button class="gift-recipient-btn${f.name === sender ? ' is-self' : ''}"
+                data-name="${f.name}"
+                ${f.name === sender || limitReached ? 'disabled' : ''}
+                style="--rc:${f.color}">
+          <span class="gr-initial">${f.initial}</span>
+          <span class="gr-name">${f.name === sender ? f.name + ' (Você)' : f.name}</span>
+        </button>`).join('')}
+    </div>
+
+    <div class="gift-section-title" id="gift-pick-title" style="display:none">2. Escolha o presente:</div>
+    <div class="gift-grid" id="gift-grid" style="display:none"></div>
+
+    <div id="gift-send-wrap" style="display:none">
+      <button id="btn-send-gift" class="btn-send-gift" disabled>🎁 Enviar presente</button>
+    </div>
+    <div id="gift-confirm-msg" class="gift-confirm-msg" style="display:none"></div>
+  `;
+
+  // Eventos dos destinatários
+  content.querySelectorAll('.gift-recipient-btn:not([disabled])').forEach(btn => {
+    btn.addEventListener('click', () => {
+      content.querySelectorAll('.gift-recipient-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      giftState.selectedRecipient = btn.dataset.name;
+      giftState.selectedGift = null;
+      renderGiftGrid(content, limitReached);
+      updateSendBtn(content);
+    });
+  });
+}
+
+function renderGiftGrid(content, limitReached) {
+  const grid      = content.querySelector('#gift-grid');
+  const title     = content.querySelector('#gift-pick-title');
+  const sendWrap  = content.querySelector('#gift-send-wrap');
+  if (!grid) return;
+  title.style.display    = 'block';
+  grid.style.display     = 'grid';
+  sendWrap.style.display = 'block';
+
+  grid.innerHTML = GIFTS.map(g => `
+    <button class="gift-card-btn" data-id="${g.id}" ${limitReached ? 'disabled' : ''}>
+      <span class="gc-emoji">${g.emoji}</span>
+      <span class="gc-name">${g.name}</span>
+      <span class="gc-english">${g.english}</span>
+    </button>`).join('');
+
+  grid.querySelectorAll('.gift-card-btn:not([disabled])').forEach(btn => {
+    btn.addEventListener('click', () => {
+      grid.querySelectorAll('.gift-card-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      giftState.selectedGift = GIFTS.find(g => g.id === btn.dataset.id);
+      updateSendBtn(content);
+    });
+  });
+}
+
+function updateSendBtn(content) {
+  const btn = content.querySelector('#btn-send-gift');
+  if (!btn) return;
+  btn.disabled = !(giftState.selectedRecipient && giftState.selectedGift);
+  if (!btn._bound) {
+    btn._bound = true;
+    btn.addEventListener('click', handleSendGift);
+  }
+}
+
+async function handleSendGift() {
+  const sender = state.playerName || DOM.playerName.value.trim();
+  const { selectedRecipient: to, selectedGift: gift } = giftState;
+  if (!sender || !to || !gift) return;
+
+  const content = DOM.sendGiftContent;
+  const btn     = content && content.querySelector('#btn-send-gift');
+  if (btn) btn.disabled = true;
+
+  const giftData = {
+    from_student: sender,
+    to_student:   to,
+    gift_id:      gift.id,
+    gift_name:    gift.name,
+    gift_emoji:   gift.emoji,
+    week_id:      getWeekId(Date.now()),
+  };
+
+  // Salvar local + incrementar contador diário
+  saveGiftLocal(giftData);
+  incrementDailyGift(sender);
+
+  // Tentar online
+  const ok = await sendGiftOnline(giftData);
+
+  // Feedback visual + áudio
+  const msg = content && content.querySelector('#gift-confirm-msg');
+  if (msg) {
+    msg.textContent = `${sender} enviou ${gift.name.toLowerCase()} para ${to}! ${gift.emoji}`;
+    msg.style.display = 'block';
+    setTimeout(() => {
+      msg.textContent += ok
+        ? ' · Presente enviado para a turma! 🌐'
+        : ' · Salvo neste aparelho. 📱';
+    }, 300);
+  }
+  speakPortuguese(`${sender} enviou ${gift.name.toLowerCase()} para ${to}.`);
+
+  // Após 2.5s, fechar e atualizar prévia
+  setTimeout(() => {
+    DOM.modalSendGift.classList.add('hidden');
+    updateGiftPreview(sender);
+  }, 2500);
+}
+
+/* ── Modal: Presentes recebidos ─────────────────────────── */
+
+async function openReceivedGiftsModal() {
+  const student = state.playerName || DOM.playerName.value.trim();
+  if (!student) {
+    alert('Escolha seu nome e digite seu código secreto para ver seus presentes.');
+    return;
+  }
+  DOM.modalReceivedGifts && DOM.modalReceivedGifts.classList.remove('hidden');
+  renderReceivedGiftsModal(student);
+}
+
+async function renderReceivedGiftsModal(student) {
+  const content = DOM.receivedGiftsContent;
+  if (!content) return;
+  content.innerHTML = '<div class="gift-loading">🎁 Carregando presentes...</div>';
+
+  // Buscar online, fallback local
+  let gifts = await fetchReceivedGiftsOnline(student);
+  let source = 'online';
+  if (!gifts) { gifts = getReceivedGiftsLocal(student); source = 'local'; }
+
+  const srcLabel = source === 'online'
+    ? '<span class="gift-src online">🌐 Ranking online da semana</span>'
+    : '<span class="gift-src local">📱 Dados deste aparelho</span>';
+
+  // Total da semana (online se possível)
+  let allWeekGifts = await fetchWeeklyGiftsOnline();
+  if (!allWeekGifts) allWeekGifts = getWeeklyGiftsLocal();
+  const weekTotal = allWeekGifts.length;
+
+  if (!gifts.length) {
+    content.innerHTML = `
+      ${srcLabel}
+      <div class="gift-empty">Você ainda não recebeu presentes esta semana. 🌻</div>
+      <div class="gift-week-total">Presentes enviados pela turma esta semana: <strong>${weekTotal}</strong></div>`;
+    return;
+  }
+
+  content.innerHTML = `
+    ${srcLabel}
+    <div class="gift-received-count">Presentes recebidos nesta semana: <strong>${gifts.length}</strong></div>
+    <div class="gift-week-total">Presentes enviados pela turma esta semana: <strong>${weekTotal}</strong></div>
+    <div class="gift-received-list">
+      ${gifts.map(g => `
+        <div class="gift-received-item">
+          <span class="gri-emoji">${g.gift_emoji}</span>
+          <div class="gri-info">
+            <span class="gri-text"><strong>${g.from_student}</strong> enviou ${g.gift_name.toLowerCase()} para <strong>${g.to_student}</strong></span>
+            <span class="gri-date">${fmtDateTimeBR(g.created_at)}</span>
+          </div>
+        </div>`).join('')}
+    </div>
+    <div class="gift-week-total" style="margin-top:8px">Presentes enviados pela turma esta semana: <strong>${weekTotal}</strong></div>`;
+}
+
+/* ── Prévia na tela inicial ─────────────────────────────── */
+
+async function updateGiftPreview(studentName) {
+  const wrap = DOM.giftPreviewWrap;
+  if (!wrap) return;
+  let gifts = await fetchReceivedGiftsOnline(studentName);
+  if (!gifts) gifts = getReceivedGiftsLocal(studentName);
+  const count = gifts.length;
+  wrap.innerHTML = count > 0
+    ? `🎁 <strong>${count}</strong> presente${count > 1 ? 's' : ''} recebido${count > 1 ? 's' : ''} esta semana!`
+    : '🎁 Nenhum presente ainda — jogue e ganhe carinho da turma!';
+  wrap.style.display = 'block';
+}
+
+/* ── Formatar data/hora ─────────────────────────────────── */
+function fmtDateTimeBR(isoStr) {
+  if (!isoStr) return '';
+  const d = new Date(isoStr);
+  if (isNaN(d)) return '';
+  const pad = n => String(n).padStart(2, '0');
+  return `${pad(d.getDate())}/${pad(d.getMonth()+1)} às ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 /** Retorna emoji e título do nível semanal baseado nos pontos acumulados. */
 function getWeeklyLevel(totalScore) {
   if (totalScore >= 1000) return { emoji: '🌟', name: 'Mestre da Escola 25' };
@@ -1564,7 +1943,24 @@ const DOM = {
   btnCloseChampCert:$('btn-close-champ-cert'),
   btnPrintChampCert:$('btn-print-champ-cert'),
   // toast de status online
-  onlineStatus:     $('online-status'),
+  onlineStatus:        $('online-status'),
+  // código secreto
+  secretCodeWrap:      $('secret-code-wrap'),
+  secretCodeLabel:     $('secret-code-label'),
+  secretCodeInput:     $('secret-code-input'),
+  secretCodeError:     $('secret-code-error'),
+  // presentes da turma
+  giftPreviewWrap:         $('gift-preview-wrap'),
+  welcomeGiftActions:      $('welcome-gift-actions'),
+  btnSendGiftWelcome:      $('btn-send-gift-welcome'),
+  btnMyGiftsWelcome:       $('btn-my-gifts-welcome'),
+  btnSendGiftVictory:      $('btn-send-gift-victory'),
+  modalSendGift:           $('modal-send-gift'),
+  sendGiftContent:         $('send-gift-content'),
+  btnCloseSendGift:        $('btn-close-send-gift'),
+  modalReceivedGifts:      $('modal-received-gifts'),
+  receivedGiftsContent:    $('received-gifts-content'),
+  btnCloseReceivedGifts:   $('btn-close-received-gifts'),
 };
 
 /* ══════════════════════════════════════════════════════════
@@ -1803,15 +2199,78 @@ function buildFriendsBar() {
    INICIAR JOGO
    ══════════════════════════════════════════════════════════ */
 
+/* ── Validação do código secreto ──────────────────────────── */
+function showCodeError(msg) {
+  if (!DOM.secretCodeError) return;
+  DOM.secretCodeError.textContent = msg;
+  DOM.secretCodeError.style.display = 'block';
+  DOM.secretCodeInput && DOM.secretCodeInput.classList.add('code-shake');
+  setTimeout(() => DOM.secretCodeInput && DOM.secretCodeInput.classList.remove('code-shake'), 450);
+}
+function clearCodeError() {
+  if (DOM.secretCodeError) DOM.secretCodeError.style.display = 'none';
+}
+
+// Aceitar apenas dígitos
+DOM.secretCodeInput && DOM.secretCodeInput.addEventListener('input', () => {
+  DOM.secretCodeInput.value = DOM.secretCodeInput.value.replace(/\D/g, '').slice(0, 2);
+  clearCodeError();
+  // Habilitar JOGAR provisoriamente só depois de 2 dígitos (validação final é no click)
+  DOM.btnPlay.disabled = DOM.secretCodeInput.value.length < 2;
+});
+
+// Enter no campo de código dispara o jogo
+DOM.secretCodeInput && DOM.secretCodeInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') { ensureAudio(); startGame(); }
+});
+
 DOM.btnPlay.addEventListener('click', () => { ensureAudio(); playClick(); startGame(); });
 
 function startGame() {
   const name = DOM.playerName.value.trim();
+
+  // 1. Nenhum aluno selecionado
   if (!name) {
     DOM.studentGrid.classList.add('shake');
     setTimeout(() => DOM.studentGrid.classList.remove('shake'), 500);
+    showCodeError('Escolha seu nome para começar.');
+    if (DOM.secretCodeWrap) DOM.secretCodeWrap.style.display = 'none';
     return;
   }
+
+  // 2. Campo de código vazio
+  const typed = DOM.secretCodeInput ? DOM.secretCodeInput.value.trim() : '';
+  if (!typed) {
+    showCodeError('Digite seu código secreto.');
+    DOM.secretCodeInput && DOM.secretCodeInput.focus();
+    return;
+  }
+
+  // 3. Código errado
+  const expected = studentCodes[name];
+  if (typed !== expected) {
+    codeWrongAttempts++;
+    if (codeWrongAttempts >= 3) {
+      showCodeError('Confira seu código com a professora. 📞');
+    } else {
+      showCodeError('Ops! Esse código não combina com esse aluno. Peça seu código para a professora.');
+    }
+    DOM.secretCodeInput && (DOM.secretCodeInput.value = '');
+    DOM.secretCodeInput && DOM.secretCodeInput.focus();
+    DOM.btnPlay.disabled = true;
+    return;
+  }
+
+  // 4. Código correto — zerar tentativas e iniciar
+  codeWrongAttempts = 0;
+  if (DOM.secretCodeWrap)  DOM.secretCodeWrap.style.display = 'none';
+  if (DOM.secretCodeInput) DOM.secretCodeInput.value = '';
+  clearCodeError();
+
+  // Mostrar botões de presentes na tela welcome
+  if (DOM.welcomeGiftActions) DOM.welcomeGiftActions.style.display = 'flex';
+  updateGiftPreview(name);
+
   state.playerName    = name;
   state.startedAt     = Date.now();
   state.score         = 0;
@@ -2398,6 +2857,11 @@ DOM.btnReplay.addEventListener('click', () => {
   playClick();
   DOM.confettiLayer.innerHTML = '';
   showScreen('welcome');
+  // Se o aluno ainda está autenticado, garantir que botões de presente fiquem visíveis
+  if (state.playerName) {
+    if (DOM.welcomeGiftActions) DOM.welcomeGiftActions.style.display = 'flex';
+    updateGiftPreview(state.playerName);
+  }
 });
 
 /* ══════════════════════════════════════════════════════════
@@ -2475,6 +2939,21 @@ DOM.btnPrintChampCert.addEventListener('click', () => {
   setTimeout(() => document.body.classList.remove('printing-champion'), 800);
 });
 
+/* ── Presentes da turma – event listeners ───────────────── */
+DOM.btnSendGiftWelcome  && DOM.btnSendGiftWelcome.addEventListener('click',  () => { ensureAudio(); playClick(); openSendGiftModal(); });
+DOM.btnMyGiftsWelcome   && DOM.btnMyGiftsWelcome.addEventListener('click',   () => { ensureAudio(); playClick(); openReceivedGiftsModal(); });
+DOM.btnSendGiftVictory  && DOM.btnSendGiftVictory.addEventListener('click',  () => { ensureAudio(); playClick(); openSendGiftModal(); });
+DOM.btnCloseSendGift    && DOM.btnCloseSendGift.addEventListener('click',    () => { playClick(); DOM.modalSendGift.classList.add('hidden'); });
+DOM.btnCloseReceivedGifts && DOM.btnCloseReceivedGifts.addEventListener('click', () => { playClick(); DOM.modalReceivedGifts.classList.add('hidden'); });
+
+// Fechar modais de presente ao clicar no fundo
+DOM.modalSendGift && DOM.modalSendGift.addEventListener('click', e => {
+  if (e.target === DOM.modalSendGift) DOM.modalSendGift.classList.add('hidden');
+});
+DOM.modalReceivedGifts && DOM.modalReceivedGifts.addEventListener('click', e => {
+  if (e.target === DOM.modalReceivedGifts) DOM.modalReceivedGifts.classList.add('hidden');
+});
+
 /* ══════════════════════════════════════════════════════════
    INICIALIZAÇÃO
    ══════════════════════════════════════════════════════════ */
@@ -2492,9 +2971,26 @@ FRIENDS.forEach(f => {
     document.querySelectorAll('.student-btn').forEach(b => b.classList.remove('selected'));
     btn.classList.add('selected');
     DOM.playerName.value = f.name;
-    DOM.btnPlay.disabled = false;
+    // O botão JOGAR só fica ativo após código correto; deixamos desabilitado por enquanto
+    DOM.btnPlay.disabled = true;
     ensureAudio(); playClick();
-    // Mostrar nível do aluno (baseado no ranking local como prévia rápida)
+
+    // Resetar estado do código ao trocar de aluno
+    codeWrongAttempts = 0;
+    if (DOM.secretCodeInput)  { DOM.secretCodeInput.value = ''; }
+    if (DOM.secretCodeError)  { DOM.secretCodeError.style.display = 'none'; }
+    if (DOM.secretCodeLabel)  {
+      DOM.secretCodeLabel.textContent = `🔐 Olá, ${f.name}! Digite seu código secreto:`;
+    }
+    if (DOM.secretCodeWrap)   { DOM.secretCodeWrap.style.display = 'block'; }
+    // Ocultar botões de presentes até novo código válido
+    if (DOM.welcomeGiftActions) DOM.welcomeGiftActions.style.display = 'none';
+    if (DOM.giftPreviewWrap)    DOM.giftPreviewWrap.style.display    = 'none';
+
+    // Focar no campo de código automaticamente
+    setTimeout(() => { if (DOM.secretCodeInput) DOM.secretCodeInput.focus(); }, 120);
+
+    // Mostrar nível do aluno
     if (levelPreviewEl) {
       const localRanking = getLocalWeekRanking();
       const entry = localRanking.find(r => r.studentName === f.name);
