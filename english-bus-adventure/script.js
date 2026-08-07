@@ -906,6 +906,24 @@ const QUESTIONS = [
     teacherHint:'É o fenômeno colorido que aparece no céu depois da chuva. Muito bonito de ver no campo!' },
 ];
 
+/* ── Frases bilíngues dos alunos ──────────────────────────
+   Cada aluno tem uma frase em inglês e sua tradução em português.
+   Usadas no modal de embarque para ensinar de forma contextual.
+   ──────────────────────────────────────────────────────── */
+const studentPhrases = {
+  Thomas:    { en: "Let's go to school!",      pt: "Vamos para a escola!"           },
+  Giovana:   { en: "I am ready!",              pt: "Estou pronto!"                  },
+  Manuella:  { en: "Good morning!",            pt: "Bom dia!"                       },
+  Nicolas:   { en: "Let's learn English!",     pt: "Vamos aprender inglês!"         },
+  Bianca:    { en: "I like school!",           pt: "Eu gosto da escola!"            },
+  Ester:     { en: "Hello, friends!",          pt: "Olá, amigos!"                   },
+  Weslay:    { en: "The bus is fun!",          pt: "O ônibus é divertido!"          },
+  Gabriella: { en: "I have my backpack!",      pt: "Eu tenho minha mochila!"        },
+  Amanda:    { en: "Time to learn!",           pt: "Hora de aprender!"              },
+  Bernardo:  { en: "Let's play and learn!",    pt: "Vamos brincar e aprender!"      },
+  Pedro:     { en: "We are going to school!",  pt: "Nós estamos indo para a escola!"},
+};
+
 /* ── Amigos / paradas (11 personagens) ──────────────────── */
 const FRIENDS = [
   { name:'Thomas',    initial:'T', color:'#1565C0', score:10,  phrase:"Let's go to school!"       },
@@ -1071,7 +1089,7 @@ async function fetchReceivedGiftsOnline(studentName) {
     const url = `${SUPABASE_URL}/rest/v1/student_gifts`
       + `?to_student=eq.${encodeURIComponent(studentName)}`
       + `&week_id=eq.${encodeURIComponent(weekId)}`
-      + `&select=from_student,to_student,gift_id,gift_name,gift_emoji,created_at,week_id`
+      + `&select=id,from_student,to_student,gift_id,gift_name,gift_emoji,created_at,week_id`
       + `&order=created_at.desc`;
     const res = await fetch(url, { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } });
     if (!res.ok) return null;
@@ -1227,15 +1245,12 @@ async function handleSendGift() {
   // Feedback visual + áudio
   const msg = content && content.querySelector('#gift-confirm-msg');
   if (msg) {
-    msg.textContent = `${sender} enviou ${gift.name.toLowerCase()} para ${to}! ${gift.emoji}`;
+    msg.innerHTML = ok
+      ? `${gift.emoji} Presente enviado!<br><small>${to} vai ver quando entrar no jogo. 🌐</small>`
+      : `${gift.emoji} Presente salvo!<br><small>Não foi possível enviar online agora. 📱</small>`;
     msg.style.display = 'block';
-    setTimeout(() => {
-      msg.textContent += ok
-        ? ' · Presente enviado para a turma! 🌐'
-        : ' · Salvo neste aparelho. 📱';
-    }, 300);
   }
-  speakPortuguese(`${sender} enviou ${gift.name.toLowerCase()} para ${to}.`);
+  speakPortuguese(`Presente enviado para ${to}!`);
 
   // Após 2.5s, fechar e atualizar prévia
   setTimeout(() => {
@@ -1292,7 +1307,7 @@ async function renderReceivedGiftsModal(student) {
         <div class="gift-received-item">
           <span class="gri-emoji">${g.gift_emoji}</span>
           <div class="gri-info">
-            <span class="gri-text"><strong>${g.from_student}</strong> enviou ${g.gift_name.toLowerCase()} para <strong>${g.to_student}</strong></span>
+            <span class="gri-text"><strong>${g.from_student}</strong> mandou <strong>${g.gift_name}</strong> para você</span>
             <span class="gri-date">${fmtDateTimeBR(g.created_at)}</span>
           </div>
         </div>`).join('')}
@@ -1312,6 +1327,107 @@ async function updateGiftPreview(studentName) {
     ? `🎁 <strong>${count}</strong> presente${count > 1 ? 's' : ''} recebido${count > 1 ? 's' : ''} esta semana!`
     : '🎁 Nenhum presente ainda — jogue e ganhe carinho da turma!';
   wrap.style.display = 'block';
+}
+
+/* ── Controle de presentes já vistos ─────────────────────
+   Evita repetir a notificação automática para o mesmo presente.
+   Chave: englishBusSeenGifts_[studentName]_[weekId]
+   Valor: JSON array de identificadores de presente (id ou created_at)
+   ──────────────────────────────────────────────────────── */
+function seenGiftsKey(studentName) {
+  return `englishBusSeenGifts_${studentName}_${getWeekId(Date.now())}`;
+}
+function getSeenGiftIds(studentName) {
+  try { return JSON.parse(localStorage.getItem(seenGiftsKey(studentName)) || '[]'); }
+  catch { return []; }
+}
+function markGiftsAsSeen(studentName, gifts) {
+  const ids = gifts.map(g => g.id || g.created_at || '').filter(Boolean);
+  const existing = getSeenGiftIds(studentName);
+  const merged = [...new Set([...existing, ...ids])];
+  localStorage.setItem(seenGiftsKey(studentName), JSON.stringify(merged));
+}
+
+/** Retorna lista de presentes recebidos que ainda não foram vistos. */
+async function getNewGifts(studentName) {
+  let gifts = await fetchReceivedGiftsOnline(studentName);
+  let source = 'online';
+  if (!gifts) { gifts = getReceivedGiftsLocal(studentName); source = 'local'; }
+  if (!gifts || !gifts.length) return { gifts: [], source };
+
+  const seen  = getSeenGiftIds(studentName);
+  const newOnes = gifts.filter(g => {
+    const uid = g.id || g.created_at || '';
+    return uid && !seen.includes(uid);
+  });
+  return { gifts: newOnes, allGifts: gifts, source };
+}
+
+/** Mostra o modal de notificação de presentes novos. */
+function showGiftNotification(newGifts, studentName, onPlay) {
+  const modal    = DOM.modalGiftNotify;
+  const list     = DOM.gnList;
+  const subtitle = DOM.gnSubtitle;
+  if (!modal || !list) { onPlay(); return; }
+
+  subtitle.textContent = newGifts.length === 1
+    ? '1 presente novo esperando por você!'
+    : `${newGifts.length} presentes novos esperando por você!`;
+
+  list.innerHTML = newGifts.map(g => `
+    <div class="gn-item">
+      <span class="gn-emoji">${g.gift_emoji}</span>
+      <span class="gn-text"><strong>${g.from_student}</strong> mandou <strong>${g.gift_name}</strong> para você</span>
+    </div>`).join('');
+
+  modal.classList.remove('hidden');
+
+  // Marcar como vistos
+  markGiftsAsSeen(studentName, newGifts);
+
+  const btnPlay = DOM.btnGnPlay;
+  const btnView = DOM.btnGnView;
+
+  // Remover listeners antigos e adicionar novos
+  const play = btnPlay.cloneNode(true);
+  const view = btnView.cloneNode(true);
+  btnPlay.replaceWith(play);
+  btnView.replaceWith(view);
+  // Atualizar refs
+  DOM.btnGnPlay = play;
+  DOM.btnGnView = view;
+
+  play.addEventListener('click', () => {
+    playClick();
+    modal.classList.add('hidden');
+    onPlay();
+  });
+  view.addEventListener('click', () => {
+    playClick();
+    modal.classList.add('hidden');
+    openReceivedGiftsModal();
+    // Após fechar "meus presentes", o jogo ainda NÃO iniciou
+    // O aluno poderá clicar JOGAR depois
+  });
+}
+
+/** Atualiza badge de contagem no botão "Meus presentes". */
+function updateGiftBadge(studentName) {
+  const badge = document.getElementById('btn-my-gifts-badge');
+  if (!badge) return;
+  // Usa contagem local para ser síncrono (prévia rápida)
+  const local = getReceivedGiftsLocal(studentName);
+  const seen  = getSeenGiftIds(studentName);
+  const newCount = local.filter(g => {
+    const uid = g.id || g.created_at || '';
+    return uid && !seen.includes(uid);
+  }).length;
+  if (newCount > 0) {
+    badge.textContent = newCount;
+    badge.style.display = 'inline-flex';
+  } else {
+    badge.style.display = 'none';
+  }
 }
 
 /* ── Formatar data/hora ─────────────────────────────────── */
@@ -1931,7 +2047,10 @@ const DOM = {
   modalBoarded:    $('modal-boarded'),
   mbAvatar:        $('mb-avatar'),
   mbTitle:         $('mb-title'),
-  mbMsg:           $('mb-msg'),
+  mbPhraseEn:      $('mb-phrase-en'),
+  mbPhrasePt:      $('mb-phrase-pt'),
+  mbSpeakEn:       $('mb-speak-en'),
+  mbSpeakPt:       $('mb-speak-pt'),
   btnContinue:     $('btn-continue'),
   modalFriendHelp: $('modal-friend-help'),
   friendHintsRow:  $('friend-hints-row'),
@@ -1993,6 +2112,12 @@ const DOM = {
   modalReceivedGifts:      $('modal-received-gifts'),
   receivedGiftsContent:    $('received-gifts-content'),
   btnCloseReceivedGifts:   $('btn-close-received-gifts'),
+  // notificação de presentes novos
+  modalGiftNotify:         $('modal-gift-notify'),
+  gnList:                  $('gn-list'),
+  gnSubtitle:              $('gn-subtitle'),
+  btnGnPlay:               $('btn-gn-play'),
+  btnGnView:               $('btn-gn-view'),
 };
 
 /* ══════════════════════════════════════════════════════════
@@ -2258,7 +2383,36 @@ DOM.secretCodeInput && DOM.secretCodeInput.addEventListener('keydown', e => {
 
 DOM.btnPlay.addEventListener('click', () => { ensureAudio(); playClick(); startGame(); });
 
-function startGame() {
+/** Inicializa e inicia o jogo para o aluno já validado. */
+function doStartGame(name) {
+  state.playerName    = name;
+  state.startedAt     = Date.now();
+  state.score         = 0;
+  state.correct       = 0;
+  state.wrong         = 0;
+  state.total         = 0;
+  state.helpFriend    = 3;
+  state.helpHint      = 2;
+  state.helpTeacher   = 1;
+  state.boardedCount  = 0;
+  state.answered      = false;
+  state.pool          = shuffle([...QUESTIONS]);
+
+  buildFriendsBar();
+  buildScene();
+  updateScoreUI(0, null);
+  updateHelpCounts();
+
+  showScreen('game');
+  setTimeout(() => { playBusHorn(); nextQuestion(); }, 400);
+}
+
+/**
+ * Valida nome + código e:
+ *  - se houver presentes novos → mostra notificação antes de iniciar
+ *  - caso contrário → inicia imediatamente
+ */
+async function startGame() {
   const name = DOM.playerName.value.trim();
 
   // 1. Nenhum aluno selecionado
@@ -2293,36 +2447,25 @@ function startGame() {
     return;
   }
 
-  // 4. Código correto — zerar tentativas e iniciar
+  // 4. Código correto — resetar UI
   codeWrongAttempts = 0;
   if (DOM.secretCodeWrap)  DOM.secretCodeWrap.style.display = 'none';
   if (DOM.secretCodeInput) DOM.secretCodeInput.value = '';
   clearCodeError();
 
-  // Mostrar botões de presentes na tela welcome
+  // Mostrar botões de presentes e prévia
   if (DOM.welcomeGiftActions) DOM.welcomeGiftActions.style.display = 'flex';
   updateGiftPreview(name);
+  updateGiftBadge(name);
 
-  state.playerName    = name;
-  state.startedAt     = Date.now();
-  state.score         = 0;
-  state.correct       = 0;
-  state.wrong         = 0;
-  state.total         = 0;
-  state.helpFriend    = 3;
-  state.helpHint      = 2;
-  state.helpTeacher   = 1;
-  state.boardedCount  = 0;
-  state.answered      = false;
-  state.pool          = shuffle([...QUESTIONS]);
-
-  buildFriendsBar();
-  buildScene();
-  updateScoreUI(0, null);
-  updateHelpCounts();
-
-  showScreen('game');
-  setTimeout(() => { playBusHorn(); nextQuestion(); }, 400);
+  // 5. Verificar presentes novos antes de iniciar
+  const { gifts: newGifts } = await getNewGifts(name);
+  if (newGifts.length > 0) {
+    // Mostrar notificação; onPlay() iniciará o jogo quando a criança clicar
+    showGiftNotification(newGifts, name, () => doStartGame(name));
+  } else {
+    doStartGame(name);
+  }
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -2588,28 +2731,51 @@ function checkFriendMilestones(oldScore, newScore) {
 }
 
 function boardFriend(idx) {
-  const f    = FRIENDS[idx];
-  const chip = document.getElementById(`chip-${idx}`);
+  const f      = FRIENDS[idx];
+  const chip   = document.getElementById(`chip-${idx}`);
   if (chip) chip.classList.add('boarded');
   state.boardedCount++;
   state.boardedThisAnswer = true;
   state.boardedFriend     = f;
   playFriendBoarded();
 
-  DOM.mbAvatar.textContent = getBigEmoji(f.name);
-  DOM.mbTitle.textContent  = `${f.name} subiu no ônibus! 🚌`;
-  DOM.mbMsg.textContent    = `${f.name} diz: "${f.phrase}" 💬`;
+  const phrases = studentPhrases[f.name] || { en: f.phrase, pt: '...' };
+
+  // Preencher o modal bilíngue
+  DOM.mbAvatar.textContent   = getBigEmoji(f.name);
+  DOM.mbTitle.textContent    = `${f.name} subiu no ônibus! 🚌`;
+  if (DOM.mbPhraseEn) DOM.mbPhraseEn.textContent = `"${phrases.en}"`;
+  if (DOM.mbPhrasePt) DOM.mbPhrasePt.textContent = `"${phrases.pt}"`;
+
+  // aria-labels dinâmicos
+  if (DOM.mbSpeakEn) DOM.mbSpeakEn.setAttribute('aria-label', `Ouvir em inglês: ${phrases.en}`);
+  if (DOM.mbSpeakPt) DOM.mbSpeakPt.setAttribute('aria-label', `Ouvir em português: ${phrases.pt}`);
+
   DOM.modalBoarded.classList.remove('hidden');
 
-  // Auto-falar a celebração (usuário acabou de clicar → interação garantida)
+  // Áudio automático: PT → EN → PT
   const boardParts = [
-    { lang: 'pt-BR', text: `${f.name} subiu no ônibus! Muito bem! ${f.name} diz:` },
-    { lang: 'en-US', text: f.phrase },
-    { lang: 'pt-BR', text: `Você tem ${state.score} pontos!` }
+    { lang: 'pt-BR', text: `${f.name} subiu no ônibus!` },
+    { lang: 'en-US', text: phrases.en },
+    { lang: 'pt-BR', text: phrases.pt },
   ];
   state.lastSpeechParts = boardParts;
-  setTimeout(() => speakMixed(boardParts), 150);
+  setTimeout(() => speakMixed(boardParts), 200);
 }
+
+// Botões de áudio do modal de embarque (não fecham o modal)
+DOM.mbSpeakEn && DOM.mbSpeakEn.addEventListener('click', e => {
+  e.stopPropagation(); e.preventDefault();
+  ensureAudio();
+  const phrases = studentPhrases[state.boardedFriend?.name];
+  if (phrases) speakEnglish(phrases.en);
+});
+DOM.mbSpeakPt && DOM.mbSpeakPt.addEventListener('click', e => {
+  e.stopPropagation(); e.preventDefault();
+  ensureAudio();
+  const phrases = studentPhrases[state.boardedFriend?.name];
+  if (phrases) speakPortuguese(phrases.pt);
+});
 
 // "Continuar" fecha o modal; a navegação fica com o botão "Próxima Parada"
 DOM.btnContinue.addEventListener('click', () => {
@@ -2985,6 +3151,8 @@ DOM.modalSendGift && DOM.modalSendGift.addEventListener('click', e => {
 DOM.modalReceivedGifts && DOM.modalReceivedGifts.addEventListener('click', e => {
   if (e.target === DOM.modalReceivedGifts) DOM.modalReceivedGifts.classList.add('hidden');
 });
+// Modal de notificação não fecha ao clicar no fundo (exige ação explícita)
+
 
 /* ══════════════════════════════════════════════════════════
    INICIALIZAÇÃO
