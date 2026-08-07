@@ -2966,3 +2966,285 @@ h1, h2, h3, .game-title, .btn-play, .cert-title, .v-title {
   .gn-header h3 { font-size: 1.1rem; }
   .gn-item { padding: 8px 10px; }
 }
+
+/* ══════════════════════════════════════════════════════
+   ÁREA ADM – PROFESSORA
+   ══════════════════════════════════════════════════════ */
+
+/* Botão discreto na tela inicial */
+.btn-admin-access {
+  display: block;
+  margin: 10px auto 0;
+  background: transparent;
+  border: 1.5px solid #B0BEC5;
+  border-radius: 20px;
+  padding: 5px 14px;
+  font-size: .75rem;
+  color: #78909C;
+  cursor: pointer;
+  font-family: 'Nunito', sans-serif;
+  transition: color .15s, border-color .15s;
+  letter-spacing: .02em;
+}
+.btn-admin-access:hover { color: #455A64; border-color: #78909C; }
+
+/* ─── Modal login ─────────────────────────────────── */
+.adm-login-box {
+  background: #fff;
+  border-radius: 20px;
+  padding: 30px 26px 24px;
+  max-width: 340px;
+  width: 92%;
+  text-align: center;
+  box-shadow: 0 8px 32px rgba(0,0,0,.18);
+  animation: popIn .25s ease both;
+}
+.adm-login-box h3 {
+  font-family: 'Baloo 2', sans-serif;
+  font-size: 1.25rem;
+  color: #263238;
+  margin: 0 0 5px;
+}
+.adm-login-sub {
+  font-size: .82rem;
+  color: #607D8B;
+  margin: 0 0 16px;
+}
+.adm-input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 2px solid #CFD8DC;
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 1.1rem;
+  font-family: 'Nunito', sans-serif;
+  color: #263238;
+  background: #F5F7FA;
+  outline: none;
+  transition: border-color .15s;
+  margin-bottom: 8px;
+  display: block;
+}
+.adm-input:focus { border-color: #1565C0; background: #fff; }
+.adm-error {
+  color: #C62828;
+  font-size: .82rem;
+  background: #FFEBEE;
+  border-radius: 8px;
+  padding: 7px 12px;
+  margin-bottom: 8px;
+  text-align: left;
+}
+.adm-success {
+  color: #2E7D32;
+  font-size: .82rem;
+  background: #E8F5E9;
+  border-radius: 8px;
+  padding: 7px 12px;
+  margin-bottom: 8px;
+  text-align: left;
+}
+.adm-login-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+.btn-adm-primary {
+  flex: 1;
+  background: #1565C0;
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-family: 'Baloo 2', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .15s, transform .1s;
+}
+.btn-adm-primary:hover { background: #0D47A1; }
+.btn-adm-primary:active { transform: scale(.97); }
+.btn-adm-cancel {
+  flex: 1;
+  background: transparent;
+  color: #607D8B;
+  border: 2px solid #CFD8DC;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-family: 'Nunito', sans-serif;
+  font-size: .95rem;
+  cursor: pointer;
+  transition: background .15s;
+}
+.btn-adm-cancel:hover { background: #ECEFF1; }
+
+/* ─── Modal painel ────────────────────────────────── */
+.adm-panel-box {
+  background: #F5F7FA;
+  border-radius: 22px;
+  padding: 0;
+  max-width: 440px;
+  width: 94%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 36px rgba(0,0,0,.2);
+  animation: popIn .25s ease both;
+}
+.adm-panel-header {
+  position: relative;
+  background: #1565C0;
+  color: #fff;
+  padding: 18px 50px 14px 20px;
+  border-radius: 22px 22px 0 0;
+}
+.adm-panel-header h3 {
+  font-family: 'Baloo 2', sans-serif;
+  font-size: 1.2rem;
+  margin: 0 0 3px;
+  color: #fff;
+}
+.adm-panel-notice {
+  font-size: .78rem;
+  opacity: .8;
+  margin: 0;
+  color: #fff;
+}
+.adm-close-btn {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  background: rgba(255,255,255,.2);
+  border: none;
+  color: #fff;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 1rem;
+  cursor: pointer;
+  line-height: 32px;
+  text-align: center;
+  transition: background .15s;
+}
+.adm-close-btn:hover { background: rgba(255,255,255,.35); }
+.adm-week-label {
+  background: #E3F2FD;
+  color: #1565C0;
+  font-size: .78rem;
+  font-weight: 700;
+  text-align: center;
+  padding: 6px 16px;
+  letter-spacing: .03em;
+}
+.adm-section-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 18px 16px 8px;
+}
+.adm-card-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: #fff;
+  border: 2px solid #E0E7EF;
+  border-radius: 16px;
+  padding: 16px 8px;
+  cursor: pointer;
+  transition: border-color .15s, transform .1s, box-shadow .15s;
+  box-shadow: 0 2px 6px rgba(0,0,0,.07);
+}
+.adm-card-btn:hover   { border-color: #1565C0; box-shadow: 0 4px 12px rgba(21,101,192,.15); }
+.adm-card-btn:active  { transform: scale(.96); }
+.adm-card-btn.adm-danger-soft { border-color: #FFD54F; }
+.adm-card-btn.adm-danger-soft:hover { border-color: #F57C00; box-shadow: 0 4px 12px rgba(245,124,0,.15); }
+.adm-card-btn.adm-danger { border-color: #FFCDD2; }
+.adm-card-btn.adm-danger:hover { border-color: #E53935; box-shadow: 0 4px 12px rgba(229,57,53,.15); }
+/* Botão "Resetar tudo" ocupa linha inteira */
+.adm-section-grid .adm-danger { grid-column: 1 / -1; flex-direction: row; gap: 10px; padding: 14px 16px; }
+.adm-card-icon { font-size: 1.5rem; line-height: 1; }
+.adm-card-label { font-size: .8rem; font-family: 'Nunito', sans-serif; font-weight: 700; color: #37474F; text-align: center; }
+.adm-danger .adm-card-label { font-size: .88rem; }
+
+.adm-feedback {
+  margin: 0 16px 16px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: .83rem;
+  font-family: 'Nunito', sans-serif;
+}
+.adm-feedback.ok  { background: #E8F5E9; color: #2E7D32; }
+.adm-feedback.err { background: #FFEBEE; color: #C62828; }
+
+/* ─── Sub-seções ──────────────────────────────────── */
+.adm-sub-section { padding: 14px 16px 20px; }
+.adm-back-btn {
+  background: transparent;
+  border: none;
+  color: #1565C0;
+  font-size: .88rem;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 4px 0;
+  margin-bottom: 10px;
+  display: block;
+}
+.adm-back-btn:hover { text-decoration: underline; }
+.adm-sub-title {
+  font-family: 'Baloo 2', sans-serif;
+  font-size: 1rem;
+  color: #263238;
+  margin: 0 0 12px;
+}
+.adm-field-label {
+  display: block;
+  font-size: .8rem;
+  font-weight: 700;
+  color: #546E7A;
+  margin-bottom: 4px;
+  font-family: 'Nunito', sans-serif;
+}
+
+/* ─── Lista de alunos ─────────────────────────────── */
+.adm-students-list { display: flex; flex-direction: column; gap: 8px; }
+.adm-student-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  border: 1.5px solid #E0E7EF;
+  border-radius: 12px;
+  padding: 10px 14px;
+  gap: 8px;
+}
+.adm-student-row.inactive { opacity: .5; }
+.adm-student-info { flex: 1; }
+.adm-student-name { font-weight: 700; font-size: .88rem; color: #263238; font-family: 'Nunito', sans-serif; }
+.adm-student-code { font-size: .75rem; color: #78909C; }
+.adm-student-status { font-size: .7rem; font-weight: 700; border-radius: 20px; padding: 2px 8px; }
+.adm-student-status.active { background: #E8F5E9; color: #2E7D32; }
+.adm-student-status.inactive-badge { background: #EEEEEE; color: #9E9E9E; }
+.btn-adm-deactivate {
+  background: transparent;
+  border: 1.5px solid #FFCDD2;
+  color: #E53935;
+  border-radius: 8px;
+  padding: 5px 10px;
+  font-size: .74rem;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .15s;
+}
+.btn-adm-deactivate:hover { background: #FFEBEE; }
+.adm-loading { text-align: center; color: #90A4AE; font-size: .85rem; padding: 16px 0; }
+
+@media (max-width: 400px) {
+  .adm-section-grid { grid-template-columns: 1fr; }
+  .adm-section-grid .adm-danger { grid-column: 1; }
+  .adm-card-btn { flex-direction: row; justify-content: flex-start; padding: 12px 14px; gap: 10px; }
+  .adm-card-icon { font-size: 1.3rem; }
+}
