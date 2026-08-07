@@ -94,7 +94,7 @@
     </div>
     <div class="welcome-gift-actions" id="welcome-gift-actions" style="display:none">
       <button id="btn-send-gift-welcome" class="btn-gift-action">🎁 Mandar presente</button>
-      <button id="btn-my-gifts-welcome"  class="btn-gift-secondary">📬 Presentes</button>
+      <button id="btn-my-gifts-welcome" class="btn-gift-secondary">📬 Presentes<span id="btn-my-gifts-badge" class="gift-badge" style="display:none"></span></button>
     </div>
 
     <p class="welcome-goal">🎯 <strong>100 pontos</strong> · buscar todos os amigos</p>
@@ -275,8 +275,28 @@
   <div class="modal-box boarding-box">
     <div class="mb-avatar" id="mb-avatar">👦</div>
     <h2 id="mb-title"></h2>
-    <p id="mb-msg"></p>
-    <button id="btn-continue" class="btn-continue">Continuar →</button>
+
+    <!-- card inglês -->
+    <div class="mb-phrase-card mb-en">
+      <span class="mb-flag">🇺🇸</span>
+      <div class="mb-phrase-content">
+        <span class="mb-phrase-label">em inglês:</span>
+        <span id="mb-phrase-en" class="mb-phrase-text"></span>
+      </div>
+      <button id="mb-speak-en" class="mb-speak-btn" aria-label="Ouvir em inglês">🔊</button>
+    </div>
+
+    <!-- card português -->
+    <div class="mb-phrase-card mb-pt">
+      <span class="mb-flag">🇧🇷</span>
+      <div class="mb-phrase-content">
+        <span class="mb-phrase-label">em português:</span>
+        <span id="mb-phrase-pt" class="mb-phrase-text"></span>
+      </div>
+      <button id="mb-speak-pt" class="mb-speak-btn" aria-label="Ouvir em português">🔊</button>
+    </div>
+
+    <button id="btn-continue" class="btn-continue btn-continue-boarding">🚌 Continuar</button>
   </div>
 </div>
 
@@ -399,6 +419,25 @@
 
 <!-- Toast de status do envio online (visível brevemente após terminar partida) -->
 <div id="online-status" class="online-toast" aria-live="polite" style="display:none"></div>
+
+<!-- ══════════════════════════════════════════════
+     MODAL – NOTIFICAÇÃO DE PRESENTES NOVOS
+     (aparece automaticamente após validar o código)
+     ══════════════════════════════════════════════ -->
+<div id="modal-gift-notify" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="gn-title">
+  <div class="modal-box gift-notify-box">
+    <div class="gn-header">
+      <div class="gn-trophy">🎁</div>
+      <h3 id="gn-title">Você recebeu presentes!</h3>
+      <p id="gn-subtitle" class="gn-subtitle"></p>
+    </div>
+    <div id="gn-list" class="gn-list"><!-- preenchido pelo JS --></div>
+    <div class="gn-actions">
+      <button id="btn-gn-play"  class="btn-gn-play">🚌 Que legal! Jogar</button>
+      <button id="btn-gn-view"  class="btn-gn-view">🎁 Ver presentes</button>
+    </div>
+  </div>
+</div>
 
 
 <!-- ══════════════════════════════════════════════
