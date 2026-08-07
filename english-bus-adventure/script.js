@@ -3203,19 +3203,37 @@ async function validateAdminAndOpenPanel() {
   DOM.btnAdmLoginSubmit.disabled = true;
   DOM.btnAdmLoginSubmit.textContent = '⏳ Verificando...';
 
+  console.log('Testando senha admin');
+
   try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/admin_validate_code`, {
+    const body = JSON.stringify({ p_admin_code: pwd });
+    console.log('Body enviado:', body);
+
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/check_admin_code`, {
       method: 'POST',
       headers: {
         apikey: SUPABASE_KEY,
         Authorization: `Bearer ${SUPABASE_KEY}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ p_admin_code: pwd }),
+      body,
     });
-    const valid = res.ok ? await res.json() : false;
 
-    if (valid === true) {
+    const raw = await res.text();
+    console.log('Resposta RPC admin (raw):', raw, '| status:', res.status);
+
+    // A RPC pode retornar true (booleano), "true" (string) ou { result: true }
+    let valid = false;
+    try {
+      const parsed = JSON.parse(raw);
+      valid = parsed === true || parsed === 'true';
+    } catch {
+      valid = raw.trim() === 'true';
+    }
+
+    console.log('Resposta RPC admin:', valid);
+
+    if (valid) {
       adminSession = { authenticated: true, password: pwd };
       DOM.modalAdminLogin.classList.add('hidden');
       renderAdminPanel();
